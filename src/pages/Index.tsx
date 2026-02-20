@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useMetronomeEngine, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
 import TempoBlockItem from '@/components/metronome/TempoBlockItem';
 import VisualFeedback from '@/components/metronome/VisualFeedback';
 import NaturalLanguageParser from '@/components/metronome/NaturalLanguageParser';
+import TapTempo from '@/components/metronome/TapTempo';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, Plus, Music2, Settings2, Sparkles } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Play, Pause, RotateCcw, Plus, Music2, Volume2, Trash2, Sparkles } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
+import { cn } from '@/lib/utils';
 
 const DEFAULT_SEQUENCE: TempoBlock[] = [
   { id: '1', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 },
-  { id: '2', bpm: 80, bars: 2, timeSignature: 4, subdivision: 1 },
 ];
 
 const Index = () => {
@@ -20,6 +22,7 @@ const Index = () => {
   });
   
   const [soundType, setSoundType] = useState<SoundType>('woodblock');
+  const [volume, setVolume] = useState(0.5);
 
   useEffect(() => {
     localStorage.setItem('metronome-sequence', JSON.stringify(sequence));
@@ -32,7 +35,19 @@ const Index = () => {
     currentBar, 
     togglePlay, 
     reset 
-  } = useMetronomeEngine(sequence, soundType);
+  } = useMetronomeEngine(sequence, soundType, volume);
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.addEventListener('keydown', handleKeyDown);
+  }, [togglePlay]);
 
   const addBlock = () => {
     const lastBlock = sequence[sequence.length - 1];
@@ -54,6 +69,20 @@ const Index = () => {
     if (sequence.length > 1) {
       setSequence(sequence.filter(b => b.id !== id));
     }
+  };
+
+  const moveBlock = (index: number, direction: 'up' | 'down') => {
+    const newSequence = [...sequence];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sequence.length) return;
+    
+    [newSequence[index], newSequence[targetIndex]] = [newSequence[targetIndex], newSequence[index]];
+    setSequence(newSequence);
+  };
+
+  const clearAll = () => {
+    setSequence(DEFAULT_SEQUENCE);
+    showSuccess("Sequence cleared");
   };
 
   const handleParse = (newBlocks: TempoBlock[]) => {
@@ -79,11 +108,8 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10">
-              <div className={isPlaying ? "w-2 h-2 rounded-full bg-green-500 animate-pulse" : "w-2 h-2 rounded-full bg-white/20"} />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">{isPlaying ? 'Live' : 'Standby'}</span>
-            </div>
+          <div className="flex items-center gap-4">
+            <TapTempo onTempoChange={(bpm) => updateBlock(currentBlock.id, { bpm })} />
             <select 
               value={soundType}
               onChange={(e) => setSoundType(e.target.value as SoundType)}
@@ -102,7 +128,10 @@ const Index = () => {
           
           <div className="flex flex-col items-center text-center space-y-4 mb-10">
             <div className="relative">
-              <div className="text-8xl font-black tracking-tighter font-mono text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+              <div className={cn(
+                "text-8xl font-black tracking-tighter font-mono text-white transition-all duration-75",
+                isPlaying && currentBeat === 0 ? "scale-110 drop-shadow-[0_0_40px_rgba(var(--primary),0.4)]" : "scale-100"
+              )}>
                 {currentBlock?.bpm}
               </div>
               <div className="absolute -right-12 bottom-4 text-xl font-bold text-primary/80 uppercase tracking-widest">BPM</div>
@@ -124,31 +153,38 @@ const Index = () => {
             isPlaying={isPlaying}
           />
 
-          <div className="flex justify-center items-center gap-6 mt-12">
-            <Button 
-              size="lg" 
-              variant="outline" 
-              onClick={reset}
-              className="rounded-2xl w-14 h-14 p-0 border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all"
-            >
-              <RotateCcw size={22} className="text-white/70" />
-            </Button>
-            
-            <Button 
-              size="lg" 
-              onClick={togglePlay}
-              className="rounded-[2rem] w-24 h-24 p-0 shadow-[0_0_50px_-12px_rgba(var(--primary),0.5)] hover:scale-105 active:scale-95 transition-all duration-300 bg-primary hover:bg-primary/90"
-            >
-              {isPlaying ? <Pause size={40} fill="currentColor" /> : <Play size={40} fill="currentColor" className="ml-2" />}
-            </Button>
+          <div className="flex flex-col items-center gap-8 mt-12">
+            <div className="flex justify-center items-center gap-6">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                onClick={reset}
+                className="rounded-2xl w-14 h-14 p-0 border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all"
+              >
+                <RotateCcw size={22} className="text-white/70" />
+              </Button>
+              
+              <Button 
+                size="lg" 
+                onClick={togglePlay}
+                className="rounded-[2rem] w-24 h-24 p-0 shadow-[0_0_50px_-12px_rgba(var(--primary),0.5)] hover:scale-105 active:scale-95 transition-all duration-300 bg-primary hover:bg-primary/90"
+              >
+                {isPlaying ? <Pause size={40} fill="currentColor" /> : <Play size={40} fill="currentColor" className="ml-2" />}
+              </Button>
 
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="rounded-2xl w-14 h-14 p-0 border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all"
-            >
-              <Settings2 size={22} className="text-white/70" />
-            </Button>
+              <div className="flex flex-col items-center gap-2 w-14">
+                <Volume2 size={18} className="text-white/40" />
+                <Slider 
+                  value={[volume * 100]} 
+                  onValueChange={(v) => setVolume(v[0] / 100)}
+                  max={100}
+                  step={1}
+                  className="w-20 -rotate-90 mt-8"
+                />
+              </div>
+            </div>
+            
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20">Press Space to Play/Pause</p>
           </div>
         </Card>
 
@@ -160,9 +196,14 @@ const Index = () => {
                 <div className="w-1.5 h-4 bg-primary rounded-full" />
                 <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-white/50">Sequence Timeline</h2>
               </div>
-              <Button variant="ghost" size="sm" onClick={addBlock} className="gap-2 text-xs font-bold text-primary hover:bg-primary/10 rounded-xl">
-                <Plus size={14} /> Add Block
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={clearAll} className="gap-2 text-xs font-bold text-white/30 hover:text-destructive hover:bg-destructive/10 rounded-xl">
+                  <Trash2 size={14} /> Clear All
+                </Button>
+                <Button variant="ghost" size="sm" onClick={addBlock} className="gap-2 text-xs font-bold text-primary hover:bg-primary/10 rounded-xl">
+                  <Plus size={14} /> Add Block
+                </Button>
+              </div>
             </div>
             
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
@@ -173,6 +214,10 @@ const Index = () => {
                   isActive={currentBlockIndex === idx}
                   onUpdate={updateBlock}
                   onDelete={deleteBlock}
+                  onMoveUp={() => moveBlock(idx, 'up')}
+                  onMoveDown={() => moveBlock(idx, 'down')}
+                  isFirst={idx === 0}
+                  isLast={idx === sequence.length - 1}
                 />
               ))}
             </div>
@@ -195,7 +240,7 @@ const Index = () => {
                 Pro Tip
               </h3>
               <p className="text-xs text-white/40 leading-relaxed font-medium">
-                Type commands like <span className="text-white/60">"4 bars @ 120bpm"</span> to instantly build your practice session.
+                Use <span className="text-white/60">Space</span> to toggle playback and <span className="text-white/60">T</span> to tap tempo instantly.
               </p>
             </Card>
           </div>

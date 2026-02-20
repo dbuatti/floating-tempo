@@ -10,37 +10,37 @@ export interface TempoBlock {
 
 export type SoundType = 'woodblock' | 'digital' | 'cowbell';
 
-export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType) => {
+export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType, volume: number = 0.5) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
   const [currentBeat, setCurrentBeat] = useState(0);
   const [currentBar, setCurrentBar] = useState(0);
   
   const audioContext = useRef<AudioContext | null>(null);
-  const nextNoteTime = useRef(0);
   const timerID = useRef<number | null>(null);
-  const lookahead = 25.0; // How frequently to call scheduling function (in milliseconds)
-  const scheduleAheadTime = 0.1; // How far ahead to schedule audio (in seconds)
+  const nextNoteTime = useRef(0);
+  const lookahead = 25.0;
+  const scheduleAheadTime = 0.1;
   
   const stateRef = useRef({
     isPlaying: false,
     currentBlockIndex: 0,
     currentBeat: 0,
     currentBar: 0,
-    sequence
+    sequence,
+    volume
   });
 
   useEffect(() => {
-    stateRef.current = { isPlaying, currentBlockIndex, currentBeat, currentBar, sequence };
-  }, [isPlaying, currentBlockIndex, currentBeat, currentBar, sequence]);
+    stateRef.current = { isPlaying, currentBlockIndex, currentBeat, currentBar, sequence, volume };
+  }, [isPlaying, currentBlockIndex, currentBeat, currentBar, sequence, volume]);
 
-  const playTone = useCallback((time: number, isFirstBeat: number, subdivision: number) => {
+  const playTone = useCallback((time: number, isFirstBeat: boolean) => {
     if (!audioContext.current) return;
     
     const osc = audioContext.current.createOscillator();
     const envelope = audioContext.current.createGain();
 
-    // Sound profiles
     if (soundType === 'woodblock') {
       osc.type = 'sine';
       osc.frequency.value = isFirstBeat ? 1200 : 800;
@@ -52,7 +52,7 @@ export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType)
       osc.frequency.value = isFirstBeat ? 800 : 400;
     }
 
-    envelope.gain.value = 1;
+    envelope.gain.value = stateRef.current.volume;
     envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
 
     osc.connect(envelope);
@@ -74,15 +74,12 @@ export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType)
         return;
       }
 
-      // Schedule the note
       const isFirstBeat = currentBeat === 0;
-      playTone(nextNoteTime.current, isFirstBeat ? 1 : 0, block.subdivision);
+      playTone(nextNoteTime.current, isFirstBeat);
 
-      // Advance timing
       const secondsPerBeat = 60.0 / block.bpm / block.subdivision;
       nextNoteTime.current += secondsPerBeat;
 
-      // Update state for UI
       let nextBeat = currentBeat + 1;
       let nextBar = currentBar;
       let nextBlockIdx = currentBlockIndex;
@@ -96,7 +93,6 @@ export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType)
         nextBar = 0;
         nextBlockIdx++;
         if (nextBlockIdx >= sequence.length) {
-          // Loop or stop? Let's stop for now or loop if desired.
           nextBlockIdx = 0; 
         }
       }
