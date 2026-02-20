@@ -3,7 +3,7 @@ import { TempoBlock } from '@/hooks/use-metronome-engine';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Trash2, ChevronUp, ChevronDown, Music, Copy } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown, Music, Copy, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -35,7 +35,8 @@ const TempoBlockItem = ({
       "p-4 flex items-center gap-4 transition-all duration-500 border-2 rounded-3xl backdrop-blur-sm",
       isActive 
         ? "border-primary/40 bg-primary/[0.08] shadow-[0_20px_40px_-15px_rgba(var(--primary),0.2)] scale-[1.01]" 
-        : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10"
+        : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10",
+      block.isMuted && "opacity-60"
     )}>
       <div className="flex flex-col gap-1">
         <Button 
@@ -59,7 +60,7 @@ const TempoBlockItem = ({
       </div>
 
       <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-white/5 text-white/20 shrink-0">
-        <Music size={18} className={cn(isActive && "text-primary")} />
+        {block.isMuted ? <VolumeX size={18} /> : <Music size={18} className={cn(isActive && "text-primary")} />}
       </div>
       
       <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -113,6 +114,23 @@ const TempoBlockItem = ({
       </div>
 
       <div className="flex items-center gap-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => onUpdate(block.id, { isMuted: !block.isMuted })}
+              className={cn(
+                "w-10 h-10 rounded-2xl transition-colors shrink-0",
+                block.isMuted ? "text-primary bg-primary/10" : "text-white/20 hover:text-primary hover:bg-primary/10"
+              )}
+            >
+              {block.isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{block.isMuted ? "Unmute Block" : "Mute Block (Gap Click)"}</TooltipContent>
+        </Tooltip>
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button 

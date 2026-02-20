@@ -6,6 +6,7 @@ export interface TempoBlock {
   bars: number;
   timeSignature: number;
   subdivision: 1 | 2 | 4;
+  isMuted?: boolean;
 }
 
 export type SoundType = 'woodblock' | 'digital' | 'cowbell';
@@ -62,6 +63,12 @@ export const useMetronomeEngine = (
   const playTone = useCallback((time: number, isFirstBeat: boolean, isSubdivision: boolean, isCountInTone: boolean = false) => {
     if (!audioContext.current) return;
     
+    const { currentBlockIndex, sequence, isCountingIn } = stateRef.current;
+    const block = sequence[currentBlockIndex];
+    
+    // Don't play sound if block is muted (unless it's count-in)
+    if (block?.isMuted && !isCountingIn) return;
+
     const osc = audioContext.current.createOscillator();
     const envelope = audioContext.current.createGain();
 
@@ -74,7 +81,6 @@ export const useMetronomeEngine = (
       freq = isFirstBeat ? 800 : 400;
     }
 
-    // Make subdivisions softer and lower pitch
     if (isSubdivision) {
       freq *= 0.6;
       envelope.gain.value = stateRef.current.volume * 0.4;

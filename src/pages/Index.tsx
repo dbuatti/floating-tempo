@@ -25,7 +25,9 @@ import {
   ArrowRight,
   TrendingUp,
   Zap,
-  Share2
+  Share2,
+  HelpCircle,
+  Keyboard
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -33,6 +35,19 @@ import { cn } from '@/lib/utils';
 const DEFAULT_SEQUENCE: TempoBlock[] = [
   { id: '1', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 },
 ];
+
+const getTempoName = (bpm: number) => {
+  if (bpm < 40) return "Grave";
+  if (bpm < 60) return "Largo";
+  if (bpm < 66) return "Larghetto";
+  if (bpm < 76) return "Adagio";
+  if (bpm < 108) return "Andante";
+  if (bpm < 120) return "Moderato";
+  if (bpm < 156) return "Allegro";
+  if (bpm < 176) return "Vivace";
+  if (bpm < 200) return "Presto";
+  return "Prestissimo";
+};
 
 const Index = () => {
   const [sequence, setSequence] = useState<TempoBlock[]>(() => {
@@ -45,6 +60,7 @@ const Index = () => {
   const [useCountIn, setUseCountIn] = useState(false);
   const [autoIncrement, setAutoIncrement] = useState(0);
   const [visualFlash, setVisualFlash] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('metronome-sequence', JSON.stringify(sequence));
@@ -65,14 +81,19 @@ const Index = () => {
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+      
       if (e.code === 'Space') {
         e.preventDefault();
         togglePlay();
+      } else if (e.key.toLowerCase() === 'r') {
+        reset();
+        showSuccess("Sequence reset");
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePlay]);
+  }, [togglePlay, reset]);
 
   const addBlock = () => {
     const lastBlock = sequence[sequence.length - 1];
@@ -197,14 +218,19 @@ const Index = () => {
               )}
             </div>
             
-            <div className="flex items-center gap-3 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
-              <span className="text-xs font-mono text-primary font-bold uppercase tracking-widest">
-                Block {currentBlockIndex + 1}
-              </span>
-              <div className="w-1 h-1 rounded-full bg-primary/30" />
-              <span className="text-xs font-mono text-primary font-bold uppercase tracking-widest">
-                Bar {currentBar + 1} / {currentBlock?.bars}
-              </span>
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-sm font-black italic text-primary/60 tracking-widest uppercase">
+                {getTempoName(displayBpm)}
+              </div>
+              <div className="flex items-center gap-3 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+                <span className="text-xs font-mono text-primary font-bold uppercase tracking-widest">
+                  Block {currentBlockIndex + 1}
+                </span>
+                <div className="w-1 h-1 rounded-full bg-primary/30" />
+                <span className="text-xs font-mono text-primary font-bold uppercase tracking-widest">
+                  Bar {currentBar + 1} / {currentBlock?.bars}
+                </span>
+              </div>
             </div>
 
             {sequence.length > 1 && (
@@ -236,7 +262,7 @@ const Index = () => {
                     <RotateCcw size={22} className="text-white/70" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Reset Sequence</TooltipContent>
+                <TooltipContent>Reset Sequence (R)</TooltipContent>
               </Tooltip>
               
               <Button 
@@ -352,18 +378,46 @@ const Index = () => {
             
             <NaturalLanguageParser onParse={handleParse} />
             
-            <Card className="p-6 bg-primary/[0.03] border-primary/10 rounded-3xl relative overflow-hidden group">
-              <div className="absolute -right-4 -bottom-4 text-primary/5 group-hover:text-primary/10 transition-colors">
-                <Sparkles size={80} />
-              </div>
-              <h3 className="text-xs font-bold uppercase mb-3 text-primary flex items-center gap-2">
-                <Sparkles size={14} />
-                Pro Tip
-              </h3>
-              <p className="text-xs text-white/40 leading-relaxed font-medium">
-                Use <span className="text-white/60">Visual Flash</span> mode to practice keeping time without relying on sound.
-              </p>
-            </Card>
+            <div className="space-y-4">
+              <Card className="p-6 bg-primary/[0.03] border-primary/10 rounded-3xl relative overflow-hidden group">
+                <div className="absolute -right-4 -bottom-4 text-primary/5 group-hover:text-primary/10 transition-colors">
+                  <Sparkles size={80} />
+                </div>
+                <h3 className="text-xs font-bold uppercase mb-3 text-primary flex items-center gap-2">
+                  <Sparkles size={14} />
+                  Pro Tip
+                </h3>
+                <p className="text-xs text-white/40 leading-relaxed font-medium">
+                  Use <span className="text-white/60">Mute Block</span> to practice "Gap Clicking" and test your internal timing.
+                </p>
+              </Card>
+
+              <Button 
+                variant="outline" 
+                className="w-full gap-2 rounded-2xl border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-xs font-bold uppercase tracking-widest h-12"
+                onClick={() => setShowShortcuts(!showShortcuts)}
+              >
+                <Keyboard size={16} className="text-primary" />
+                Keyboard Shortcuts
+              </Button>
+
+              {showShortcuts && (
+                <Card className="p-5 bg-white/[0.02] border-white/5 rounded-3xl space-y-3 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-white/40 uppercase">Space</span>
+                    <span className="text-[10px] font-bold text-primary uppercase">Play / Pause</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-white/40 uppercase">T</span>
+                    <span className="text-[10px] font-bold text-primary uppercase">Tap Tempo</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-white/40 uppercase">R</span>
+                    <span className="text-[10px] font-bold text-primary uppercase">Reset Sequence</span>
+                  </div>
+                </Card>
+              )}
+            </div>
           </div>
         </div>
 
