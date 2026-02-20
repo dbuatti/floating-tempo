@@ -4,17 +4,24 @@ export interface TempoBlock {
   id: string;
   bpm: number;
   bars: number;
-  timeSignature: number; // beats per bar
-  subdivision: 1 | 2 | 4; // 1: quarter, 2: 8th, 4: 16th
+  timeSignature: number;
+  subdivision: 1 | 2 | 4;
 }
 
 export type SoundType = 'woodblock' | 'digital' | 'cowbell';
 
-export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType, volume: number = 0.5) => {
+export const useMetronomeEngine = (
+  sequence: TempoBlock[], 
+  soundType: SoundType, 
+  volume: number = 0.5,
+  useCountIn: boolean = false
+) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isCountingIn, setIsCountingIn] = useState(false);
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
   const [currentBeat, setCurrentBeat] = useState(0);
   const [currentBar, setCurrentBar] = useState(0);
+  const [totalProgress, setTotalProgress] = useState(0);
   
   const audioContext = useRef<AudioContext | null>(null);
   const timerID = useRef<number | null>(null);
@@ -24,18 +31,29 @@ export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType,
   
   const stateRef = useRef({
     isPlaying: false,
+    isCountingIn: false,
     currentBlockIndex: 0,
     currentBeat: 0,
     currentBar: 0,
     sequence,
-    volume
+    volume,
+    useCountIn
   });
 
   useEffect(() => {
-    stateRef.current = { isPlaying, currentBlockIndex, currentBeat, currentBar, sequence, volume };
-  }, [isPlaying, currentBlockIndex, currentBeat, currentBar, sequence, volume]);
+    stateRef.current = { 
+      isPlaying, 
+      isCountingIn,
+      currentBlockIndex, 
+      currentBeat, 
+      currentBar, 
+      sequence, 
+      volume,
+      useCountIn
+    };
+  }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, useCountIn]);
 
-  const playTone = useCallback((time: number, isFirstBeat: boolean) => {
+  const playTone = useCallback((time: number, isFirstBeat: boolean, isCountInTone: boolean = false) => {
     if (!audioContext.current) return;
     
     const osc = audioContext.current.createOscillator();
@@ -52,6 +70,9 @@ export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType,
       osc.frequency.value = isFirstBeat ? 800 : 400;
     }
 
+    // Lower pitch for count-in to distinguish it
+    if (isCountInTone && !isFirstBeat) osc.frequency.value *= 0.8;
+
     envelope.gain.value = stateRef.current.volume;
     envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
 
@@ -66,7 +87,7 @@ export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType,
     if (!audioContext.current) return;
 
     while (nextNoteTime.current < audioContext.current.currentTime + scheduleAheadTime) {
-      const { currentBlockIndex, currentBeat, currentBar, sequence } = stateRef.current;
+      const { currentBlockIndex, currentBeat, currentBar, sequence, isCountingIn } = stateRef.current;
       const block = sequence[currentBlockIndex];
       
       if (!block) {
@@ -75,7 +96,7 @@ export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType,
       }
 
       const isFirstBeat = currentBeat === 0;
-      playTone(nextNoteTime.current, isFirstBeat);
+      playTone(nextNoteTime.current, isFirstBeat, isCountingIn);
 
       const secondsPerBeat = 60.0 / block.bpm / block.subdivision;
       nextNoteTime.current += secondsPerBeat;
@@ -83,13 +104,19 @@ export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType,
       let nextBeat = currentBeat + 1;
       let nextBar = currentBar;
       let nextBlockIdx = currentBlockIndex;
+      let nextIsCountingIn = isCountingIn;
 
       if (nextBeat >= block.timeSignature * block.subdivision) {
         nextBeat = 0;
         nextBar++;
       }
 
-      if (nextBar >= block.bars) {
+      if (isCountingIn) {
+        if (nextBar >= 1) { // 1 bar count-in
+          nextBar = 0;
+          nextIsCountingIn = false;
+        }
+      } else if (nextBar >= block.bars) {
         nextBar = 0;
         nextBlockIdx++;
         if (nextBlockIdx >= sequence.length) {
@@ -100,10 +127,20 @@ export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType,
       setCurrentBeat(nextBeat);
       setCurrentBar(nextBar);
       setCurrentBlockIndex(nextBlockIdx);
+      setIsCountingIn(nextIsCountingIn);
       
       stateRef.current.currentBeat = nextBeat;
       stateRef.current.currentBar = nextBar;
       stateRef.current.currentBlockIndex = nextBlockIdx;
+      stateRef.current.isCountingIn = nextIsCountingIn;
+
+      // Calculate total progress
+      if (!nextIsCountingIn) {
+        const totalBars = sequence.reduce((acc, b) => acc + b.bars, 0);
+        const barsCompleted = sequence.slice(0, nextBlockIdx).reduce((acc, b) => acc + b.bars, 0) + nextBar;
+        const progress = (barsCompleted + (nextBeat / (block.timeSignature * block.subdivision))) / totalBars;
+        setTotalProgress(progress);
+      }
     }
     timerID.current = window.setTimeout(scheduler, lookahead);
   }, [playTone]);
@@ -116,9 +153,12 @@ export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType,
     if (isPlaying) {
       if (timerID.current) clearTimeout(timerID.current);
       setIsPlaying(false);
+      setIsCountingIn(false);
     } else {
       nextNoteTime.current = audioContext.current.currentTime + 0.05;
       setIsPlaying(true);
+      setIsCountingIn(stateRef.current.useCountIn);
+      stateRef.current.isCountingIn = stateRef.current.useCountIn;
       scheduler();
     }
   }, [isPlaying, scheduler]);
@@ -127,16 +167,21 @@ export const useMetronomeEngine = (sequence: TempoBlock[], soundType: SoundType,
     setCurrentBlockIndex(0);
     setCurrentBeat(0);
     setCurrentBar(0);
+    setTotalProgress(0);
+    setIsCountingIn(false);
     stateRef.current.currentBlockIndex = 0;
     stateRef.current.currentBeat = 0;
     stateRef.current.currentBar = 0;
+    stateRef.current.isCountingIn = false;
   }, []);
 
   return {
     isPlaying,
+    isCountingIn,
     currentBlockIndex,
     currentBeat,
     currentBar,
+    totalProgress,
     togglePlay,
     reset
   };

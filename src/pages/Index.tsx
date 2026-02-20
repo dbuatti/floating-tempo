@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMetronomeEngine, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
 import TempoBlockItem from '@/components/metronome/TempoBlockItem';
 import VisualFeedback from '@/components/metronome/VisualFeedback';
@@ -7,7 +7,22 @@ import TapTempo from '@/components/metronome/TapTempo';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, RotateCcw, Plus, Music2, Volume2, Trash2, Sparkles } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { 
+  Play, 
+  Pause, 
+  RotateCcw, 
+  Plus, 
+  Music2, 
+  Volume2, 
+  Trash2, 
+  Sparkles, 
+  Timer,
+  ArrowRight
+} from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +38,7 @@ const Index = () => {
   
   const [soundType, setSoundType] = useState<SoundType>('woodblock');
   const [volume, setVolume] = useState(0.5);
+  const [useCountIn, setUseCountIn] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('metronome-sequence', JSON.stringify(sequence));
@@ -30,12 +46,14 @@ const Index = () => {
 
   const { 
     isPlaying, 
+    isCountingIn,
     currentBlockIndex, 
     currentBeat, 
     currentBar, 
+    totalProgress,
     togglePlay, 
     reset 
-  } = useMetronomeEngine(sequence, soundType, volume);
+  } = useMetronomeEngine(sequence, soundType, volume, useCountIn);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -46,7 +64,7 @@ const Index = () => {
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [togglePlay]);
 
   const addBlock = () => {
@@ -59,6 +77,18 @@ const Index = () => {
       subdivision: 1
     };
     setSequence([...sequence, newBlock]);
+  };
+
+  const duplicateBlock = (id: string) => {
+    const blockToDuplicate = sequence.find(b => b.id === id);
+    if (blockToDuplicate) {
+      const index = sequence.findIndex(b => b.id === id);
+      const newBlock = { ...blockToDuplicate, id: Math.random().toString(36).substr(2, 9) };
+      const newSequence = [...sequence];
+      newSequence.splice(index + 1, 0, newBlock);
+      setSequence(newSequence);
+      showSuccess("Block duplicated");
+    }
   };
 
   const updateBlock = (id: string, updates: Partial<TempoBlock>) => {
@@ -91,9 +121,13 @@ const Index = () => {
   };
 
   const currentBlock = sequence[currentBlockIndex];
+  const nextBlock = sequence[(currentBlockIndex + 1) % sequence.length];
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
+    <div className={cn(
+      "min-h-screen bg-background text-foreground selection:bg-primary/30 transition-colors duration-150",
+      isPlaying && currentBeat === 0 && !isCountingIn ? "bg-primary/[0.02]" : ""
+    )}>
       <div className="max-w-5xl mx-auto px-6 py-12 space-y-12">
         
         {/* Header */}
@@ -126,16 +160,31 @@ const Index = () => {
         <Card className="bg-white/[0.02] border-white/5 p-10 relative overflow-hidden backdrop-blur-xl shadow-2xl">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
           
+          {/* Sequence Progress Bar */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-white/5">
+            <div 
+              className="h-full bg-primary transition-all duration-300 ease-out shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+              style={{ width: `${totalProgress * 100}%` }}
+            />
+          </div>
+
           <div className="flex flex-col items-center text-center space-y-4 mb-10">
             <div className="relative">
+              {isCountingIn && (
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-primary font-black uppercase tracking-[0.3em] animate-pulse text-sm">
+                  Count In
+                </div>
+              )}
               <div className={cn(
                 "text-8xl font-black tracking-tighter font-mono text-white transition-all duration-75",
-                isPlaying && currentBeat === 0 ? "scale-110 drop-shadow-[0_0_40px_rgba(var(--primary),0.4)]" : "scale-100"
+                isPlaying && currentBeat === 0 ? "scale-110 drop-shadow-[0_0_40px_rgba(var(--primary),0.4)]" : "scale-100",
+                isCountingIn ? "text-primary/50" : "text-white"
               )}>
                 {currentBlock?.bpm}
               </div>
               <div className="absolute -right-12 bottom-4 text-xl font-bold text-primary/80 uppercase tracking-widest">BPM</div>
             </div>
+            
             <div className="flex items-center gap-3 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
               <span className="text-xs font-mono text-primary font-bold uppercase tracking-widest">
                 Block {currentBlockIndex + 1}
@@ -145,6 +194,16 @@ const Index = () => {
                 Bar {currentBar + 1} / {currentBlock?.bars}
               </span>
             </div>
+
+            {/* Next Block Preview */}
+            {sequence.length > 1 && (
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/20 mt-2">
+                <span>Next</span>
+                <ArrowRight size={10} />
+                <span className="text-white/40">{nextBlock.bpm} BPM</span>
+                <span className="text-white/40">{nextBlock.timeSignature}/4</span>
+              </div>
+            )}
           </div>
 
           <VisualFeedback 
@@ -155,14 +214,19 @@ const Index = () => {
 
           <div className="flex flex-col items-center gap-8 mt-12">
             <div className="flex justify-center items-center gap-6">
-              <Button 
-                size="lg" 
-                variant="outline" 
-                onClick={reset}
-                className="rounded-2xl w-14 h-14 p-0 border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all"
-              >
-                <RotateCcw size={22} className="text-white/70" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    onClick={reset}
+                    className="rounded-2xl w-14 h-14 p-0 border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all"
+                  >
+                    <RotateCcw size={22} className="text-white/70" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Reset Sequence</TooltipContent>
+              </Tooltip>
               
               <Button 
                 size="lg" 
@@ -184,7 +248,20 @@ const Index = () => {
               </div>
             </div>
             
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20">Press Space to Play/Pause</p>
+            <div className="flex items-center gap-8">
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="count-in" 
+                  checked={useCountIn} 
+                  onCheckedChange={setUseCountIn}
+                  className="data-[state=checked]:bg-primary"
+                />
+                <Label htmlFor="count-in" className="text-[10px] font-bold uppercase tracking-widest text-white/40 cursor-pointer flex items-center gap-1">
+                  <Timer size={12} /> Count In
+                </Label>
+              </div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20">Press Space to Play/Pause</p>
+            </div>
           </div>
         </Card>
 
@@ -214,6 +291,7 @@ const Index = () => {
                   isActive={currentBlockIndex === idx}
                   onUpdate={updateBlock}
                   onDelete={deleteBlock}
+                  onDuplicate={duplicateBlock}
                   onMoveUp={() => moveBlock(idx, 'up')}
                   onMoveDown={() => moveBlock(idx, 'down')}
                   isFirst={idx === 0}

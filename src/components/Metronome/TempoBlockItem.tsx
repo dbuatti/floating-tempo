@@ -3,14 +3,16 @@ import { TempoBlock } from '@/hooks/use-metronome-engine';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Trash2, ChevronUp, ChevronDown, Music } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown, Music, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TempoBlockItemProps {
   block: TempoBlock;
   isActive: boolean;
   onUpdate: (id: string, updates: Partial<TempoBlock>) => void;
   onDelete: (id: string) => void;
+  onDuplicate: (id: string) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   isFirst: boolean;
@@ -22,6 +24,7 @@ const TempoBlockItem = ({
   isActive, 
   onUpdate, 
   onDelete, 
+  onDuplicate,
   onMoveUp, 
   onMoveDown,
   isFirst,
@@ -109,14 +112,35 @@ const TempoBlockItem = ({
         </div>
       </div>
 
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        onClick={() => onDelete(block.id)}
-        className="w-10 h-10 rounded-2xl text-white/20 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-      >
-        <Trash2 size={18} />
-      </Button>
+      <div className="flex items-center gap-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => onDuplicate(block.id)}
+              className="w-10 h-10 rounded-2xl text-white/20 hover:text-primary hover:bg-primary/10 transition-colors shrink-0"
+            >
+              <Copy size={18} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Duplicate Block</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => onDelete(block.id)}
+              className="w-10 h-10 rounded-2xl text-white/20 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+            >
+              <Trash2 size={18} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Delete Block</TooltipContent>
+        </Tooltip>
+      </div>
     </Card>
   );
 };
