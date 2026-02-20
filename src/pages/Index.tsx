@@ -86,6 +86,7 @@ const Index = () => {
     currentBeat, 
     currentBar, 
     totalProgress,
+    subdivisionProgress,
     bpmOffset,
     togglePlay, 
     reset 
@@ -179,7 +180,7 @@ const Index = () => {
 
   return (
     <div className={cn(
-      "min-h-screen bg-[#08080a] text-foreground selection:bg-primary/30 transition-all duration-700 overflow-x-hidden",
+      "min-h-screen bg-[#08080a] text-foreground selection:bg-primary/30 transition-all duration-700 overflow-x-hidden analog-noise",
       isPlaying && currentBeat === 0 && !isCountingIn && visualFlash ? "brightness-150" : ""
     )}>
       {/* Immersive Background Engine */}
@@ -339,6 +340,7 @@ const Index = () => {
             isPlaying={isPlaying}
             accentColor={accentColor}
             onSeek={handleSeek}
+            subdivisionProgress={subdivisionProgress}
           />
 
           <div className="flex flex-col items-center gap-12 mt-16">
@@ -551,7 +553,7 @@ const Index = () => {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                       >
-                        <Card className="p-8 bg-white/[0.01] border-white/5 rounded-[2.5rem] space-y-5 backdrop-blur-3xl">
+                        <Card className="p-8 bg-white/[0.01] border-white/5 rounded-[2.5rem] space-y-5 backdrop-blur-md">
                           <div className="flex justify-between items-center">
                             <span className="text-[11px] font-black text-white/20 uppercase tracking-widest">Space</span>
                             <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: accentColor }}>Play</span>

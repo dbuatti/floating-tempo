@@ -24,6 +24,7 @@ export const useMetronomeEngine = (
   const [currentBeat, setCurrentBeat] = useState(0);
   const [currentBar, setCurrentBar] = useState(0);
   const [totalProgress, setTotalProgress] = useState(0);
+  const [subdivisionProgress, setSubdivisionProgress] = useState(0);
   const [bpmOffset, setBpmOffset] = useState(0);
   
   const audioContext = useRef<AudioContext | null>(null);
@@ -60,13 +61,33 @@ export const useMetronomeEngine = (
     };
   }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, useCountIn, autoIncrement, bpmOffset]);
 
+  // Animation loop for smooth subdivision progress
+  useEffect(() => {
+    let animationFrame: number;
+    const updateProgress = () => {
+      if (isPlaying && audioContext.current) {
+        const { currentBlockIndex, sequence, bpmOffset } = stateRef.current;
+        const block = sequence[currentBlockIndex];
+        if (block) {
+          const currentBpm = block.bpm + bpmOffset;
+          const secondsPerBeat = 60.0 / currentBpm / block.subdivision;
+          const timeInBeat = audioContext.current.currentTime - (nextNoteTime.current - secondsPerBeat);
+          const progress = Math.max(0, Math.min(1, timeInBeat / secondsPerBeat));
+          setSubdivisionProgress(progress);
+        }
+      }
+      animationFrame = requestAnimationFrame(updateProgress);
+    };
+    updateProgress();
+    return () => cancelAnimationFrame(animationFrame);
+  }, [isPlaying]);
+
   const playTone = useCallback((time: number, isFirstBeat: boolean, isSubdivision: boolean, isCountInTone: boolean = false) => {
     if (!audioContext.current) return;
     
     const { currentBlockIndex, sequence, isCountingIn } = stateRef.current;
     const block = sequence[currentBlockIndex];
     
-    // Don't play sound if block is muted (unless it's count-in)
     if (block?.isMuted && !isCountingIn) return;
 
     const osc = audioContext.current.createOscillator();
@@ -87,8 +108,6 @@ export const useMetronomeEngine = (
     } else {
       envelope.gain.value = stateRef.current.volume;
     }
-
-    if (isCountInTone && !isFirstBeat) freq *= 0.8;
 
     osc.frequency.value = freq;
     envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
@@ -207,6 +226,7 @@ export const useMetronomeEngine = (
     currentBeat,
     currentBar,
     totalProgress,
+    subdivisionProgress,
     bpmOffset,
     togglePlay,
     reset
