@@ -29,7 +29,8 @@ import {
   Share2,
   Keyboard,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Settings2
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -173,69 +174,70 @@ const Index = () => {
   };
 
   const handleSeek = useCallback((progress: number) => {
-    // Seeking logic would require engine support for jumping to a specific bar/beat
-    // For now, we'll show a toast as a placeholder for future engine expansion
     showSuccess(`Seeking to ${Math.round(progress * 100)}%`);
   }, []);
 
-  const nextBlock = sequence[(currentBlockIndex + 1) % sequence.length];
-
   return (
     <div className={cn(
-      "min-h-screen bg-[#0a0a0c] text-foreground selection:bg-primary/30 transition-all duration-500 overflow-x-hidden",
-      isPlaying && currentBeat === 0 && !isCountingIn && visualFlash ? "brightness-125" : ""
+      "min-h-screen bg-[#08080a] text-foreground selection:bg-primary/30 transition-all duration-700 overflow-x-hidden",
+      isPlaying && currentBeat === 0 && !isCountingIn && visualFlash ? "brightness-150" : ""
     )}>
-      {/* Dynamic Background Mesh with Pulse */}
+      {/* Immersive Background Engine */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div 
           animate={{ 
             backgroundColor: accentColor,
-            scale: isPlaying && currentBeat === 0 ? 1.1 : 1,
-            opacity: isPlaying && currentBeat === 0 ? 0.12 : 0.08
+            scale: isPlaying && currentBeat === 0 ? 1.2 : 1,
+            opacity: isPlaying && currentBeat === 0 ? 0.15 : 0.05
           }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] blur-[150px] rounded-full transition-colors duration-1000" 
+          transition={{ type: "spring", stiffness: 200, damping: 30 }}
+          className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] blur-[200px] rounded-full transition-colors duration-1000" 
         />
         <motion.div 
           animate={{ 
             backgroundColor: accentColor,
-            scale: isPlaying && currentBeat === 0 ? 1.05 : 1,
-            opacity: isPlaying && currentBeat === 0 ? 0.08 : 0.05
+            scale: isPlaying && currentBeat === 0 ? 1.1 : 1,
+            opacity: isPlaying && currentBeat === 0 ? 0.1 : 0.03
           }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] blur-[150px] rounded-full transition-colors duration-1000" 
+          transition={{ type: "spring", stiffness: 200, damping: 35 }}
+          className="absolute bottom-[-20%] right-[-20%] w-[80%] h-[80%] blur-[200px] rounded-full transition-colors duration-1000" 
         />
       </div>
 
       <div className={cn(
-        "max-w-5xl mx-auto px-6 py-12 space-y-12 relative z-10 transition-all duration-700",
-        isFocusMode ? "py-24" : "py-12"
+        "max-w-6xl mx-auto px-6 py-12 space-y-16 relative z-10 transition-all duration-1000",
+        isFocusMode ? "py-32" : "py-12"
       )}>
         
         {/* Header */}
         <AnimatePresence>
           {!isFocusMode && (
             <motion.header 
-              initial={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -30 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="flex flex-col md:flex-row items-center justify-between gap-8"
+              exit={{ opacity: 0, y: -30 }}
+              className="flex flex-col md:flex-row items-center justify-between gap-10"
             >
-              <div className="flex items-center gap-5">
+              <div className="flex items-center gap-6">
                 <motion.div 
-                  animate={{ backgroundColor: accentColor, boxShadow: `0 20px 40px ${accentColor}33` }}
-                  className="w-14 h-14 rounded-[1.5rem] flex items-center justify-center rotate-6 transition-all duration-500"
+                  animate={{ 
+                    backgroundColor: accentColor, 
+                    boxShadow: `0 25px 50px ${accentColor}44, inset 0 0 20px rgba(255,255,255,0.3)` 
+                  }}
+                  whileHover={{ scale: 1.1, rotate: 0 }}
+                  className="w-16 h-16 rounded-[2rem] flex items-center justify-center rotate-12 transition-all duration-500 cursor-pointer"
                 >
-                  <Music2 className="text-white w-7 h-7" />
+                  <Music2 className="text-white w-8 h-8" />
                 </motion.div>
                 <div>
-                  <h1 className="text-4xl font-black tracking-tighter text-white">Fluid Metronome</h1>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: accentColor }}>Studio Elite Engine</p>
+                  <h1 className="text-5xl font-black tracking-tighter text-white leading-none">Fluid</h1>
+                  <p className="text-[11px] font-black uppercase tracking-[0.4em] mt-1" style={{ color: accentColor }}>Studio Elite Metronome</p>
                 </div>
               </div>
               
-              <div className="flex flex-wrap items-center justify-center gap-4">
+              <div className="flex flex-wrap items-center justify-center gap-5 p-2 bg-white/[0.02] rounded-[2rem] border border-white/5 backdrop-blur-xl">
                 <PracticeTimer onTimeUp={() => isPlaying && togglePlay()} isActive={isPlaying} />
+                <div className="w-[1px] h-8 bg-white/5 mx-2" />
                 <SoundSelector value={soundType} onChange={setSoundType} />
                 <PresetsManager currentSequence={sequence} onLoad={setSequence} />
                 <TapTempo onTempoChange={(bpm) => updateBlock(currentBlock.id, { bpm })} />
@@ -244,34 +246,27 @@ const Index = () => {
           )}
         </AnimatePresence>
 
-        {/* Main Display */}
+        {/* Main Display Engine */}
         <Card className={cn(
-          "bg-white/[0.03] border-white/5 relative overflow-hidden backdrop-blur-3xl shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] rounded-[3rem] transition-all duration-700",
-          isFocusMode ? "p-20 scale-110" : "p-12"
+          "bg-white/[0.02] border-white/5 relative overflow-hidden backdrop-blur-[100px] shadow-[0_80px_150px_-30px_rgba(0,0,0,0.8)] rounded-[4rem] transition-all duration-1000",
+          isFocusMode ? "p-24 scale-110 border-white/10" : "p-16"
         )}>
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-white/5">
-            <motion.div 
-              className="h-full shadow-lg"
-              style={{ backgroundColor: accentColor, boxShadow: `0 0 20px ${accentColor}` }}
-              animate={{ width: `${totalProgress * 100}%` }}
-              transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            />
-          </div>
+          {/* Inner Glows */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-          <div className="flex flex-col items-center text-center space-y-6 mb-12">
+          <div className="flex flex-col items-center text-center space-y-10 mb-16">
             <div className="relative">
               <AnimatePresence mode="wait">
                 {isCountingIn && (
                   <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.2 }}
                     style={{ color: accentColor }}
-                    className="absolute -top-10 left-1/2 -translate-x-1/2 font-black uppercase tracking-[0.4em] animate-pulse text-sm"
+                    className="absolute -top-12 left-1/2 -translate-x-1/2 font-black uppercase tracking-[0.6em] animate-pulse text-xs"
                   >
-                    Count In
+                    Ready
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -279,32 +274,33 @@ const Index = () => {
               <div className="relative flex items-center justify-center">
                 <motion.div
                   key={displayBpm}
-                  initial={{ scale: 0.9, opacity: 0.5 }}
+                  initial={{ scale: 0.95, opacity: 0.8 }}
                   animate={{ 
-                    scale: isPlaying && currentBeat === 0 ? 1.05 : 1,
+                    scale: isPlaying && currentBeat === 0 ? 1.08 : 1,
                     opacity: 1 
                   }}
+                  transition={{ type: "spring", stiffness: 400, damping: 15 }}
                   className={cn(
-                    "text-[10rem] font-black tracking-tighter font-mono leading-none transition-all duration-75",
-                    isPlaying && currentBeat === 0 ? "drop-shadow-[0_0_60px_rgba(255,255,255,0.2)]" : "text-white",
-                    isCountingIn && "text-white/20"
+                    "text-[12rem] font-black tracking-tighter font-mono leading-none transition-all duration-100",
+                    isPlaying && currentBeat === 0 ? "drop-shadow-[0_0_80px_rgba(255,255,255,0.3)]" : "text-white",
+                    isCountingIn && "text-white/10"
                   )}
                   style={{ color: isPlaying && currentBeat === 0 ? accentColor : 'white' }}
                 >
                   {displayBpm}
                 </motion.div>
-                <div className="absolute -right-16 bottom-6 text-2xl font-black uppercase tracking-widest opacity-20">BPM</div>
+                <div className="absolute -right-20 bottom-8 text-3xl font-black uppercase tracking-widest opacity-10">BPM</div>
                 
                 <AnimatePresence>
                   {bpmOffset > 0 && (
                     <motion.div 
-                      initial={{ opacity: 0, x: 20 }}
+                      initial={{ opacity: 0, x: 30 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
+                      exit={{ opacity: 0, x: 30 }}
                       style={{ color: accentColor }}
-                      className="absolute -right-20 top-4 font-black text-lg flex items-center gap-1"
+                      className="absolute -right-24 top-6 font-black text-2xl flex items-center gap-2"
                     >
-                      <TrendingUp size={18} />
+                      <TrendingUp size={24} />
                       +{bpmOffset}
                     </motion.div>
                   )}
@@ -312,25 +308,27 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-6">
               <motion.div 
                 key={getTempoName(displayBpm)}
-                initial={{ opacity: 0, y: 5 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 style={{ color: accentColor }}
-                className="text-lg font-black italic tracking-[0.2em] uppercase opacity-60"
+                className="text-2xl font-black italic tracking-[0.3em] uppercase opacity-40"
               >
                 {getTempoName(displayBpm)}
               </motion.div>
               
-              <div className="flex items-center gap-4 px-6 py-2 bg-white/5 rounded-full border border-white/10 backdrop-blur-md">
-                <span className="text-[10px] font-mono font-black uppercase tracking-[0.2em] opacity-60">
-                  Block {currentBlockIndex + 1}
-                </span>
+              <div className="flex items-center gap-6 px-8 py-3 bg-white/[0.03] rounded-full border border-white/10 backdrop-blur-2xl shadow-xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Block</span>
+                  <span className="text-[11px] font-mono font-black text-white">{currentBlockIndex + 1}</span>
+                </div>
                 <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-                <span className="text-[10px] font-mono font-black uppercase tracking-[0.2em] opacity-60">
-                  Bar {currentBar + 1} / {currentBlock?.bars}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Bar</span>
+                  <span className="text-[11px] font-mono font-black text-white">{currentBar + 1} / {currentBlock?.bars}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -343,29 +341,29 @@ const Index = () => {
             onSeek={handleSeek}
           />
 
-          <div className="flex flex-col items-center gap-10 mt-12">
-            <div className="flex justify-center items-center gap-8">
+          <div className="flex flex-col items-center gap-12 mt-16">
+            <div className="flex justify-center items-center gap-12">
               <AnimatePresence>
                 {!isFocusMode && (
                   <motion.div 
-                    initial={{ opacity: 0, scale: 0.8 }}
+                    initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
+                    exit={{ opacity: 0, scale: 0.5 }}
                   >
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                        <motion.div whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}>
                           <Button 
                             size="lg" 
                             variant="outline" 
                             onClick={reset}
-                            className="rounded-[1.5rem] w-16 h-16 p-0 border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all"
+                            className="rounded-[2rem] w-20 h-20 p-0 border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all shadow-xl"
                           >
-                            <RotateCcw size={24} className="text-white/70" />
+                            <RotateCcw size={28} className="text-white/60" />
                           </Button>
                         </motion.div>
                       </TooltipTrigger>
-                      <TooltipContent>Reset Sequence (R)</TooltipContent>
+                      <TooltipContent>Reset (R)</TooltipContent>
                     </Tooltip>
                   </motion.div>
                 )}
@@ -375,27 +373,30 @@ const Index = () => {
                 <Button 
                   size="lg" 
                   onClick={togglePlay}
-                  style={{ backgroundColor: accentColor, boxShadow: `0 20px 60px -15px ${accentColor}99` }}
-                  className="rounded-[3rem] w-28 h-28 p-0 transition-all duration-500"
+                  style={{ 
+                    backgroundColor: accentColor, 
+                    boxShadow: `0 30px 80px -20px ${accentColor}aa, inset 0 0 30px rgba(255,255,255,0.4)` 
+                  }}
+                  className="rounded-[4rem] w-32 h-32 p-0 transition-all duration-500 border-none"
                 >
-                  {isPlaying ? <Pause size={48} fill="currentColor" /> : <Play size={48} fill="currentColor" className="ml-2" />}
+                  {isPlaying ? <Pause size={56} fill="currentColor" /> : <Play size={56} fill="currentColor" className="ml-3" />}
                 </Button>
               </motion.div>
 
-              <div className="flex flex-col items-center gap-3 w-16">
-                <Volume2 size={20} className="text-white/40" />
+              <div className="flex flex-col items-center gap-4 w-20">
+                <Volume2 size={24} className="text-white/30" />
                 <Slider 
                   value={[volume * 100]} 
                   onValueChange={(v) => setVolume(v[0] / 100)}
                   max={100}
                   step={1}
-                  className="w-24 -rotate-90 mt-10"
+                  className="w-28 -rotate-90 mt-12"
                 />
               </div>
             </div>
             
-            <div className="flex flex-wrap items-center justify-center gap-10">
-              <div className="flex items-center space-x-3">
+            <div className="flex flex-wrap items-center justify-center gap-12 p-6 bg-white/[0.02] rounded-[3rem] border border-white/5">
+              <div className="flex items-center space-x-4">
                 <Switch 
                   id="count-in" 
                   checked={useCountIn} 
@@ -403,12 +404,12 @@ const Index = () => {
                   style={{ '--primary': accentColor } as any}
                   className="data-[state=checked]:bg-primary"
                 />
-                <Label htmlFor="count-in" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 cursor-pointer flex items-center gap-2 hover:text-white/60 transition-colors">
-                  <Timer size={14} /> Count In
+                <Label htmlFor="count-in" className="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 cursor-pointer flex items-center gap-2 hover:text-white/60 transition-colors">
+                  <Timer size={16} /> Count In
                 </Label>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-4">
                 <Switch 
                   id="visual-flash" 
                   checked={visualFlash} 
@@ -416,12 +417,12 @@ const Index = () => {
                   style={{ '--primary': accentColor } as any}
                   className="data-[state=checked]:bg-primary"
                 />
-                <Label htmlFor="visual-flash" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 cursor-pointer flex items-center gap-2 hover:text-white/60 transition-colors">
-                  <Zap size={14} /> Flash
+                <Label htmlFor="visual-flash" className="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 cursor-pointer flex items-center gap-2 hover:text-white/60 transition-colors">
+                  <Zap size={16} /> Flash
                 </Label>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-4">
                 <Switch 
                   id="focus-mode" 
                   checked={isFocusMode} 
@@ -429,20 +430,20 @@ const Index = () => {
                   style={{ '--primary': accentColor } as any}
                   className="data-[state=checked]:bg-primary"
                 />
-                <Label htmlFor="focus-mode" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 cursor-pointer flex items-center gap-2 hover:text-white/60 transition-colors">
-                  {isFocusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />} Focus Mode
+                <Label htmlFor="focus-mode" className="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 cursor-pointer flex items-center gap-2 hover:text-white/60 transition-colors">
+                  {isFocusMode ? <Minimize2 size={16} /> : <Maximize2 size={16} />} Focus
                 </Label>
               </div>
 
-              <div className="flex items-center gap-4">
-                <Label htmlFor="auto-inc" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-2">
-                  <TrendingUp size={14} /> Auto-Inc
+              <div className="flex items-center gap-5">
+                <Label htmlFor="auto-inc" className="text-[11px] font-black uppercase tracking-[0.3em] text-white/30 flex items-center gap-2">
+                  <TrendingUp size={16} /> Auto-Inc
                 </Label>
                 <select 
                   id="auto-inc"
                   value={autoIncrement}
                   onChange={(e) => setAutoIncrement(parseInt(e.target.value))}
-                  className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-[10px] font-black outline-none cursor-pointer hover:bg-white/10 transition-all"
+                  className="bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-[11px] font-black outline-none cursor-pointer hover:bg-white/10 transition-all"
                   style={{ color: accentColor }}
                 >
                   <option value={0}>Off</option>
@@ -456,41 +457,41 @@ const Index = () => {
           </div>
         </Card>
 
-        {/* Timeline & Input */}
+        {/* Timeline & Input Engine */}
         <AnimatePresence>
           {!isFocusMode && (
             <motion.div 
-              initial={{ opacity: 0, y: 40 }}
+              initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 40 }}
-              className="grid grid-cols-1 lg:grid-cols-12 gap-10"
+              exit={{ opacity: 0, y: 50 }}
+              className="grid grid-cols-1 lg:grid-cols-12 gap-12"
             >
-              <div className="lg:col-span-8 space-y-8">
-                <div className="flex items-center justify-between px-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-5 rounded-full shadow-lg" style={{ backgroundColor: accentColor }} />
-                    <h2 className="text-sm font-black uppercase tracking-[0.3em] text-white/60">Sequence Timeline</h2>
+              <div className="lg:col-span-8 space-y-10">
+                <div className="flex items-center justify-between px-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-3 h-6 rounded-full shadow-2xl" style={{ backgroundColor: accentColor }} />
+                    <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Timeline</h2>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="sm" onClick={exportSequence} className="gap-2 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white hover:bg-white/5 rounded-xl transition-all">
-                      <Share2 size={14} /> Export
+                  <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="sm" onClick={exportSequence} className="gap-2 text-[11px] font-black uppercase tracking-widest text-white/20 hover:text-white hover:bg-white/5 rounded-2xl transition-all">
+                      <Share2 size={16} /> Export
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={clearAll} className="gap-2 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all">
-                      <Trash2 size={14} /> Clear
+                    <Button variant="ghost" size="sm" onClick={clearAll} className="gap-2 text-[11px] font-black uppercase tracking-widest text-white/20 hover:text-destructive hover:bg-destructive/10 rounded-2xl transition-all">
+                      <Trash2 size={16} /> Clear
                     </Button>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       onClick={addBlock} 
                       style={{ color: accentColor }}
-                      className="gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 rounded-xl transition-all"
+                      className="gap-2 text-[11px] font-black uppercase tracking-widest hover:bg-white/5 rounded-2xl transition-all"
                     >
-                      <Plus size={14} /> Add Block
+                      <Plus size={16} /> Add Block
                     </Button>
                   </div>
                 </div>
                 
-                <div className="space-y-6 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar">
+                <div className="space-y-8 max-h-[700px] overflow-y-auto pr-6 custom-scrollbar">
                   <AnimatePresence mode="popLayout">
                     {sequence.map((block, idx) => (
                       <TempoBlockItem 
@@ -510,36 +511,36 @@ const Index = () => {
                 </div>
               </div>
 
-              <div className="lg:col-span-4 space-y-8">
-                <div className="flex items-center gap-3 px-4">
-                  <div className="w-2 h-5 rounded-full shadow-lg" style={{ backgroundColor: accentColor }} />
-                  <h2 className="text-sm font-black uppercase tracking-[0.3em] text-white/60">Smart Parser</h2>
+              <div className="lg:col-span-4 space-y-10">
+                <div className="flex items-center gap-4 px-6">
+                  <div className="w-3 h-6 rounded-full shadow-2xl" style={{ backgroundColor: accentColor }} />
+                  <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Smart Input</h2>
                 </div>
                 
                 <NaturalLanguageParser onParse={handleParse} />
                 
-                <div className="space-y-6">
-                  <Card className="p-8 bg-white/[0.02] border-white/5 rounded-[2.5rem] relative overflow-hidden group backdrop-blur-md">
-                    <div className="absolute -right-6 -bottom-6 opacity-[0.03] group-hover:opacity-[0.08] transition-all duration-700 rotate-12 group-hover:rotate-0" style={{ color: accentColor }}>
-                      <Sparkles size={120} />
+                <div className="space-y-8">
+                  <Card className="p-10 bg-white/[0.01] border-white/5 rounded-[3rem] relative overflow-hidden group backdrop-blur-3xl">
+                    <div className="absolute -right-10 -bottom-10 opacity-[0.02] group-hover:opacity-[0.05] transition-all duration-1000 rotate-45 group-hover:rotate-0" style={{ color: accentColor }}>
+                      <Settings2 size={180} />
                     </div>
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2" style={{ color: accentColor }}>
-                      <Sparkles size={14} />
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] mb-6 flex items-center gap-3" style={{ color: accentColor }}>
+                      <Sparkles size={18} />
                       Pro Tip
                     </h3>
-                    <p className="text-xs text-white/40 leading-relaxed font-bold">
-                      Use <span className="text-white/70">Focus Mode (F)</span> to remove distractions and focus entirely on your timing.
+                    <p className="text-sm text-white/30 leading-relaxed font-bold">
+                      The <span className="text-white/60">Radial Ring</span> shows the exact subdivision progress. Use it to master complex polyrhythms.
                     </p>
                   </Card>
 
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button 
                       variant="outline" 
-                      className="w-full gap-3 rounded-[1.5rem] border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-[10px] font-black uppercase tracking-[0.2em] h-14 transition-all"
+                      className="w-full gap-4 rounded-[2rem] border-white/5 bg-white/[0.01] hover:bg-white/[0.03] text-[11px] font-black uppercase tracking-[0.3em] h-16 transition-all shadow-lg"
                       onClick={() => setShowShortcuts(!showShortcuts)}
                     >
-                      <Keyboard size={18} style={{ color: accentColor }} />
-                      Keyboard Shortcuts
+                      <Keyboard size={20} style={{ color: accentColor }} />
+                      Shortcuts
                     </Button>
                   </motion.div>
 
@@ -550,22 +551,22 @@ const Index = () => {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                       >
-                        <Card className="p-6 bg-white/[0.02] border-white/5 rounded-[2rem] space-y-4 backdrop-blur-md">
+                        <Card className="p-8 bg-white/[0.01] border-white/5 rounded-[2.5rem] space-y-5 backdrop-blur-3xl">
                           <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Space</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: accentColor }}>Play / Pause</span>
+                            <span className="text-[11px] font-black text-white/20 uppercase tracking-widest">Space</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: accentColor }}>Play</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">F</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: accentColor }}>Focus Mode</span>
+                            <span className="text-[11px] font-black text-white/20 uppercase tracking-widest">F</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: accentColor }}>Focus</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">T</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: accentColor }}>Tap Tempo</span>
+                            <span className="text-[11px] font-black text-white/20 uppercase tracking-widest">T</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: accentColor }}>Tap</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">R</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: accentColor }}>Reset</span>
+                            <span className="text-[11px] font-black text-white/20 uppercase tracking-widest">R</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: accentColor }}>Reset</span>
                           </div>
                         </Card>
                       </motion.div>
