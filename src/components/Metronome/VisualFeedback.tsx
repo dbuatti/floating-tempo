@@ -7,9 +7,18 @@ interface VisualFeedbackProps {
   totalBeats: number;
   isPlaying: boolean;
   accentColor: string;
+  onSeek?: (progress: number) => void;
 }
 
-const VisualFeedback = ({ currentBeat, totalBeats, isPlaying, accentColor }: VisualFeedbackProps) => {
+const VisualFeedback = ({ currentBeat, totalBeats, isPlaying, accentColor, onSeek }: VisualFeedbackProps) => {
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!onSeek) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const progress = Math.max(0, Math.min(1, x / rect.width));
+    onSeek(progress);
+  };
+
   return (
     <div className="flex flex-col items-center gap-12 py-10">
       <div className="flex flex-wrap justify-center gap-8">
@@ -67,7 +76,11 @@ const VisualFeedback = ({ currentBeat, totalBeats, isPlaying, accentColor }: Vis
         })}
       </div>
       
-      <div className="relative w-full max-w-2xl h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+      <div 
+        className="relative w-full max-w-2xl h-3 bg-white/5 rounded-full overflow-hidden border border-white/5 cursor-pointer group"
+        onClick={handleProgressClick}
+      >
+        <div className="absolute inset-0 bg-white/0 group-hover:bg-white/[0.02] transition-colors" />
         <motion.div 
           className="absolute top-0 left-0 h-full shadow-lg"
           style={{ backgroundColor: accentColor, boxShadow: `0 0 20px ${accentColor}` }}

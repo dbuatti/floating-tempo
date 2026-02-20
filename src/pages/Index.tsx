@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useMetronomeEngine, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
 import TempoBlockItem from '@/components/metronome/TempoBlockItem';
 import VisualFeedback from '@/components/metronome/VisualFeedback';
@@ -172,6 +172,12 @@ const Index = () => {
     showSuccess("Sequence copied to clipboard");
   };
 
+  const handleSeek = useCallback((progress: number) => {
+    // Seeking logic would require engine support for jumping to a specific bar/beat
+    // For now, we'll show a toast as a placeholder for future engine expansion
+    showSuccess(`Seeking to ${Math.round(progress * 100)}%`);
+  }, []);
+
   const nextBlock = sequence[(currentBlockIndex + 1) % sequence.length];
 
   return (
@@ -179,15 +185,25 @@ const Index = () => {
       "min-h-screen bg-[#0a0a0c] text-foreground selection:bg-primary/30 transition-all duration-500 overflow-x-hidden",
       isPlaying && currentBeat === 0 && !isCountingIn && visualFlash ? "brightness-125" : ""
     )}>
-      {/* Dynamic Background Mesh */}
+      {/* Dynamic Background Mesh with Pulse */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div 
-          animate={{ backgroundColor: accentColor }}
-          className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] blur-[150px] rounded-full opacity-[0.08] transition-colors duration-1000" 
+          animate={{ 
+            backgroundColor: accentColor,
+            scale: isPlaying && currentBeat === 0 ? 1.1 : 1,
+            opacity: isPlaying && currentBeat === 0 ? 0.12 : 0.08
+          }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] blur-[150px] rounded-full transition-colors duration-1000" 
         />
         <motion.div 
-          animate={{ backgroundColor: accentColor }}
-          className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] blur-[150px] rounded-full opacity-[0.05] transition-colors duration-1000" 
+          animate={{ 
+            backgroundColor: accentColor,
+            scale: isPlaying && currentBeat === 0 ? 1.05 : 1,
+            opacity: isPlaying && currentBeat === 0 ? 0.08 : 0.05
+          }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] blur-[150px] rounded-full transition-colors duration-1000" 
         />
       </div>
 
@@ -264,7 +280,10 @@ const Index = () => {
                 <motion.div
                   key={displayBpm}
                   initial={{ scale: 0.9, opacity: 0.5 }}
-                  animate={{ scale: 1, opacity: 1 }}
+                  animate={{ 
+                    scale: isPlaying && currentBeat === 0 ? 1.05 : 1,
+                    opacity: 1 
+                  }}
                   className={cn(
                     "text-[10rem] font-black tracking-tighter font-mono leading-none transition-all duration-75",
                     isPlaying && currentBeat === 0 ? "drop-shadow-[0_0_60px_rgba(255,255,255,0.2)]" : "text-white",
@@ -321,6 +340,7 @@ const Index = () => {
             totalBeats={(currentBlock?.timeSignature || 4) * (currentBlock?.subdivision || 1)} 
             isPlaying={isPlaying}
             accentColor={accentColor}
+            onSeek={handleSeek}
           />
 
           <div className="flex flex-col items-center gap-10 mt-12">
