@@ -5,6 +5,7 @@ import VisualFeedback from '@/components/metronome/VisualFeedback';
 import NaturalLanguageParser from '@/components/metronome/NaturalLanguageParser';
 import TapTempo from '@/components/metronome/TapTempo';
 import PresetsManager from '@/components/metronome/PresetsManager';
+import PracticeTimer from '@/components/metronome/PracticeTimer';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -22,7 +23,9 @@ import {
   Sparkles, 
   Timer,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  Zap,
+  Share2
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -41,6 +44,7 @@ const Index = () => {
   const [volume, setVolume] = useState(0.5);
   const [useCountIn, setUseCountIn] = useState(false);
   const [autoIncrement, setAutoIncrement] = useState(0);
+  const [visualFlash, setVisualFlash] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('metronome-sequence', JSON.stringify(sequence));
@@ -123,14 +127,20 @@ const Index = () => {
     showSuccess(`Generated ${newBlocks.length} tempo blocks`);
   };
 
+  const exportSequence = () => {
+    const data = JSON.stringify(sequence);
+    navigator.clipboard.writeText(data);
+    showSuccess("Sequence copied to clipboard");
+  };
+
   const currentBlock = sequence[currentBlockIndex];
   const nextBlock = sequence[(currentBlockIndex + 1) % sequence.length];
   const displayBpm = (currentBlock?.bpm || 120) + bpmOffset;
 
   return (
     <div className={cn(
-      "min-h-screen bg-background text-foreground selection:bg-primary/30 transition-colors duration-150",
-      isPlaying && currentBeat === 0 && !isCountingIn ? "bg-primary/[0.02]" : ""
+      "min-h-screen bg-background text-foreground selection:bg-primary/30 transition-all duration-75",
+      isPlaying && currentBeat === 0 && !isCountingIn && visualFlash ? "bg-primary/20" : ""
     )}>
       <div className="max-w-5xl mx-auto px-6 py-12 space-y-12">
         
@@ -147,17 +157,9 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-6">
+            <PracticeTimer onTimeUp={() => isPlaying && togglePlay()} isActive={isPlaying} />
             <PresetsManager currentSequence={sequence} onLoad={setSequence} />
             <TapTempo onTempoChange={(bpm) => updateBlock(currentBlock.id, { bpm })} />
-            <select 
-              value={soundType}
-              onChange={(e) => setSoundType(e.target.value as SoundType)}
-              className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wider focus:ring-2 ring-primary/50 outline-none cursor-pointer hover:bg-white/10 transition-colors"
-            >
-              <option value="woodblock">Wood Block</option>
-              <option value="digital">Digital Click</option>
-              <option value="cowbell">Cowbell</option>
-            </select>
           </div>
         </header>
 
@@ -270,6 +272,18 @@ const Index = () => {
                 </Label>
               </div>
 
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="visual-flash" 
+                  checked={visualFlash} 
+                  onCheckedChange={setVisualFlash}
+                  className="data-[state=checked]:bg-primary"
+                />
+                <Label htmlFor="visual-flash" className="text-[10px] font-bold uppercase tracking-widest text-white/40 cursor-pointer flex items-center gap-1">
+                  <Zap size={12} /> Flash
+                </Label>
+              </div>
+
               <div className="flex items-center gap-3">
                 <Label htmlFor="auto-inc" className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-1">
                   <TrendingUp size={12} /> Auto-Inc
@@ -300,6 +314,9 @@ const Index = () => {
                 <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-white/50">Sequence Timeline</h2>
               </div>
               <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={exportSequence} className="gap-2 text-xs font-bold text-white/30 hover:text-primary hover:bg-primary/10 rounded-xl">
+                  <Share2 size={14} /> Export
+                </Button>
                 <Button variant="ghost" size="sm" onClick={clearAll} className="gap-2 text-xs font-bold text-white/30 hover:text-destructive hover:bg-destructive/10 rounded-xl">
                   <Trash2 size={14} /> Clear All
                 </Button>
@@ -344,7 +361,7 @@ const Index = () => {
                 Pro Tip
               </h3>
               <p className="text-xs text-white/40 leading-relaxed font-medium">
-                Use <span className="text-white/60">Practice Mode</span> (Auto-Inc) to gradually build speed. The BPM will increase every time the sequence loops.
+                Use <span className="text-white/60">Visual Flash</span> mode to practice keeping time without relying on sound.
               </p>
             </Card>
           </div>

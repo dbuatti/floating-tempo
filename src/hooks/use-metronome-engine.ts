@@ -15,7 +15,7 @@ export const useMetronomeEngine = (
   soundType: SoundType, 
   volume: number = 0.5,
   useCountIn: boolean = false,
-  autoIncrement: number = 0 // BPM to add after each full loop
+  autoIncrement: number = 0
 ) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCountingIn, setIsCountingIn] = useState(false);
@@ -59,27 +59,33 @@ export const useMetronomeEngine = (
     };
   }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, useCountIn, autoIncrement, bpmOffset]);
 
-  const playTone = useCallback((time: number, isFirstBeat: boolean, isCountInTone: boolean = false) => {
+  const playTone = useCallback((time: number, isFirstBeat: boolean, isSubdivision: boolean, isCountInTone: boolean = false) => {
     if (!audioContext.current) return;
     
     const osc = audioContext.current.createOscillator();
     const envelope = audioContext.current.createGain();
 
+    let freq = 800;
     if (soundType === 'woodblock') {
-      osc.type = 'sine';
-      osc.frequency.value = isFirstBeat ? 1200 : 800;
+      freq = isFirstBeat ? 1200 : 800;
     } else if (soundType === 'digital') {
-      osc.type = 'square';
-      osc.frequency.value = isFirstBeat ? 1000 : 500;
+      freq = isFirstBeat ? 1000 : 500;
     } else {
-      osc.type = 'triangle';
-      osc.frequency.value = isFirstBeat ? 800 : 400;
+      freq = isFirstBeat ? 800 : 400;
     }
 
-    if (isCountInTone && !isFirstBeat) osc.frequency.value *= 0.8;
+    // Make subdivisions softer and lower pitch
+    if (isSubdivision) {
+      freq *= 0.6;
+      envelope.gain.value = stateRef.current.volume * 0.4;
+    } else {
+      envelope.gain.value = stateRef.current.volume;
+    }
 
-    envelope.gain.value = stateRef.current.volume;
-    envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    if (isCountInTone && !isFirstBeat) freq *= 0.8;
+
+    osc.frequency.value = freq;
+    envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
 
     osc.connect(envelope);
     envelope.connect(audioContext.current.destination);
@@ -101,7 +107,9 @@ export const useMetronomeEngine = (
       }
 
       const isFirstBeat = currentBeat === 0;
-      playTone(nextNoteTime.current, isFirstBeat, isCountingIn);
+      const isSubdivision = currentBeat % block.subdivision !== 0;
+      
+      playTone(nextNoteTime.current, isFirstBeat, isSubdivision, isCountingIn);
 
       const currentBpm = block.bpm + bpmOffset;
       const secondsPerBeat = 60.0 / currentBpm / block.subdivision;
