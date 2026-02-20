@@ -4,12 +4,12 @@ import TempoBlockItem from '@/components/metronome/TempoBlockItem';
 import VisualFeedback from '@/components/metronome/VisualFeedback';
 import NaturalLanguageParser from '@/components/metronome/NaturalLanguageParser';
 import TapTempo from '@/components/metronome/TapTempo';
+import PresetsManager from '@/components/metronome/PresetsManager';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Play, 
@@ -21,7 +21,8 @@ import {
   Trash2, 
   Sparkles, 
   Timer,
-  ArrowRight
+  ArrowRight,
+  TrendingUp
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,7 @@ const Index = () => {
   const [soundType, setSoundType] = useState<SoundType>('woodblock');
   const [volume, setVolume] = useState(0.5);
   const [useCountIn, setUseCountIn] = useState(false);
+  const [autoIncrement, setAutoIncrement] = useState(0);
 
   useEffect(() => {
     localStorage.setItem('metronome-sequence', JSON.stringify(sequence));
@@ -51,9 +53,10 @@ const Index = () => {
     currentBeat, 
     currentBar, 
     totalProgress,
+    bpmOffset,
     togglePlay, 
     reset 
-  } = useMetronomeEngine(sequence, soundType, volume, useCountIn);
+  } = useMetronomeEngine(sequence, soundType, volume, useCountIn, autoIncrement);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -122,6 +125,7 @@ const Index = () => {
 
   const currentBlock = sequence[currentBlockIndex];
   const nextBlock = sequence[(currentBlockIndex + 1) % sequence.length];
+  const displayBpm = (currentBlock?.bpm || 120) + bpmOffset;
 
   return (
     <div className={cn(
@@ -142,7 +146,8 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
+            <PresetsManager currentSequence={sequence} onLoad={setSequence} />
             <TapTempo onTempoChange={(bpm) => updateBlock(currentBlock.id, { bpm })} />
             <select 
               value={soundType}
@@ -160,7 +165,6 @@ const Index = () => {
         <Card className="bg-white/[0.02] border-white/5 p-10 relative overflow-hidden backdrop-blur-xl shadow-2xl">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
           
-          {/* Sequence Progress Bar */}
           <div className="absolute top-0 left-0 w-full h-1 bg-white/5">
             <div 
               className="h-full bg-primary transition-all duration-300 ease-out shadow-[0_0_10px_rgba(var(--primary),0.5)]"
@@ -180,9 +184,15 @@ const Index = () => {
                 isPlaying && currentBeat === 0 ? "scale-110 drop-shadow-[0_0_40px_rgba(var(--primary),0.4)]" : "scale-100",
                 isCountingIn ? "text-primary/50" : "text-white"
               )}>
-                {currentBlock?.bpm}
+                {displayBpm}
               </div>
               <div className="absolute -right-12 bottom-4 text-xl font-bold text-primary/80 uppercase tracking-widest">BPM</div>
+              {bpmOffset > 0 && (
+                <div className="absolute -right-16 top-0 text-primary font-black text-sm flex items-center gap-1">
+                  <TrendingUp size={14} />
+                  +{bpmOffset}
+                </div>
+              )}
             </div>
             
             <div className="flex items-center gap-3 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
@@ -195,12 +205,11 @@ const Index = () => {
               </span>
             </div>
 
-            {/* Next Block Preview */}
             {sequence.length > 1 && (
               <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/20 mt-2">
                 <span>Next</span>
                 <ArrowRight size={10} />
-                <span className="text-white/40">{nextBlock.bpm} BPM</span>
+                <span className="text-white/40">{nextBlock.bpm + bpmOffset} BPM</span>
                 <span className="text-white/40">{nextBlock.timeSignature}/4</span>
               </div>
             )}
@@ -248,7 +257,7 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-12">
               <div className="flex items-center space-x-2">
                 <Switch 
                   id="count-in" 
@@ -260,7 +269,24 @@ const Index = () => {
                   <Timer size={12} /> Count In
                 </Label>
               </div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20">Press Space to Play/Pause</p>
+
+              <div className="flex items-center gap-3">
+                <Label htmlFor="auto-inc" className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-1">
+                  <TrendingUp size={12} /> Auto-Inc
+                </Label>
+                <select 
+                  id="auto-inc"
+                  value={autoIncrement}
+                  onChange={(e) => setAutoIncrement(parseInt(e.target.value))}
+                  className="bg-white/5 border-none rounded-lg px-2 py-1 text-[10px] font-bold text-primary outline-none cursor-pointer"
+                >
+                  <option value={0}>Off</option>
+                  <option value={1}>+1 BPM</option>
+                  <option value={2}>+2 BPM</option>
+                  <option value={5}>+5 BPM</option>
+                  <option value={10}>+10 BPM</option>
+                </select>
+              </div>
             </div>
           </div>
         </Card>
@@ -318,7 +344,7 @@ const Index = () => {
                 Pro Tip
               </h3>
               <p className="text-xs text-white/40 leading-relaxed font-medium">
-                Use <span className="text-white/60">Space</span> to toggle playback and <span className="text-white/60">T</span> to tap tempo instantly.
+                Use <span className="text-white/60">Practice Mode</span> (Auto-Inc) to gradually build speed. The BPM will increase every time the sequence loops.
               </p>
             </Card>
           </div>

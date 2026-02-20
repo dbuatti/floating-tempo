@@ -14,7 +14,8 @@ export const useMetronomeEngine = (
   sequence: TempoBlock[], 
   soundType: SoundType, 
   volume: number = 0.5,
-  useCountIn: boolean = false
+  useCountIn: boolean = false,
+  autoIncrement: number = 0 // BPM to add after each full loop
 ) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCountingIn, setIsCountingIn] = useState(false);
@@ -22,6 +23,7 @@ export const useMetronomeEngine = (
   const [currentBeat, setCurrentBeat] = useState(0);
   const [currentBar, setCurrentBar] = useState(0);
   const [totalProgress, setTotalProgress] = useState(0);
+  const [bpmOffset, setBpmOffset] = useState(0);
   
   const audioContext = useRef<AudioContext | null>(null);
   const timerID = useRef<number | null>(null);
@@ -37,7 +39,9 @@ export const useMetronomeEngine = (
     currentBar: 0,
     sequence,
     volume,
-    useCountIn
+    useCountIn,
+    autoIncrement,
+    bpmOffset: 0
   });
 
   useEffect(() => {
@@ -49,9 +53,11 @@ export const useMetronomeEngine = (
       currentBar, 
       sequence, 
       volume,
-      useCountIn
+      useCountIn,
+      autoIncrement,
+      bpmOffset
     };
-  }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, useCountIn]);
+  }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, useCountIn, autoIncrement, bpmOffset]);
 
   const playTone = useCallback((time: number, isFirstBeat: boolean, isCountInTone: boolean = false) => {
     if (!audioContext.current) return;
@@ -70,7 +76,6 @@ export const useMetronomeEngine = (
       osc.frequency.value = isFirstBeat ? 800 : 400;
     }
 
-    // Lower pitch for count-in to distinguish it
     if (isCountInTone && !isFirstBeat) osc.frequency.value *= 0.8;
 
     envelope.gain.value = stateRef.current.volume;
@@ -87,7 +92,7 @@ export const useMetronomeEngine = (
     if (!audioContext.current) return;
 
     while (nextNoteTime.current < audioContext.current.currentTime + scheduleAheadTime) {
-      const { currentBlockIndex, currentBeat, currentBar, sequence, isCountingIn } = stateRef.current;
+      const { currentBlockIndex, currentBeat, currentBar, sequence, isCountingIn, autoIncrement, bpmOffset } = stateRef.current;
       const block = sequence[currentBlockIndex];
       
       if (!block) {
@@ -98,13 +103,15 @@ export const useMetronomeEngine = (
       const isFirstBeat = currentBeat === 0;
       playTone(nextNoteTime.current, isFirstBeat, isCountingIn);
 
-      const secondsPerBeat = 60.0 / block.bpm / block.subdivision;
+      const currentBpm = block.bpm + bpmOffset;
+      const secondsPerBeat = 60.0 / currentBpm / block.subdivision;
       nextNoteTime.current += secondsPerBeat;
 
       let nextBeat = currentBeat + 1;
       let nextBar = currentBar;
       let nextBlockIdx = currentBlockIndex;
       let nextIsCountingIn = isCountingIn;
+      let nextBpmOffset = bpmOffset;
 
       if (nextBeat >= block.timeSignature * block.subdivision) {
         nextBeat = 0;
@@ -112,7 +119,7 @@ export const useMetronomeEngine = (
       }
 
       if (isCountingIn) {
-        if (nextBar >= 1) { // 1 bar count-in
+        if (nextBar >= 1) {
           nextBar = 0;
           nextIsCountingIn = false;
         }
@@ -120,7 +127,8 @@ export const useMetronomeEngine = (
         nextBar = 0;
         nextBlockIdx++;
         if (nextBlockIdx >= sequence.length) {
-          nextBlockIdx = 0; 
+          nextBlockIdx = 0;
+          nextBpmOffset += autoIncrement;
         }
       }
 
@@ -128,13 +136,14 @@ export const useMetronomeEngine = (
       setCurrentBar(nextBar);
       setCurrentBlockIndex(nextBlockIdx);
       setIsCountingIn(nextIsCountingIn);
+      setBpmOffset(nextBpmOffset);
       
       stateRef.current.currentBeat = nextBeat;
       stateRef.current.currentBar = nextBar;
       stateRef.current.currentBlockIndex = nextBlockIdx;
       stateRef.current.isCountingIn = nextIsCountingIn;
+      stateRef.current.bpmOffset = nextBpmOffset;
 
-      // Calculate total progress
       if (!nextIsCountingIn) {
         const totalBars = sequence.reduce((acc, b) => acc + b.bars, 0);
         const barsCompleted = sequence.slice(0, nextBlockIdx).reduce((acc, b) => acc + b.bars, 0) + nextBar;
@@ -169,10 +178,12 @@ export const useMetronomeEngine = (
     setCurrentBar(0);
     setTotalProgress(0);
     setIsCountingIn(false);
+    setBpmOffset(0);
     stateRef.current.currentBlockIndex = 0;
     stateRef.current.currentBeat = 0;
     stateRef.current.currentBar = 0;
     stateRef.current.isCountingIn = false;
+    stateRef.current.bpmOffset = 0;
   }, []);
 
   return {
@@ -182,6 +193,7 @@ export const useMetronomeEngine = (
     currentBeat,
     currentBar,
     totalProgress,
+    bpmOffset,
     togglePlay,
     reset
   };
