@@ -26,7 +26,7 @@ export const useMetronomeEngine = (
   sequence: TempoBlock[], 
   soundType: SoundType, 
   volume: number = 0.5,
-  pan: number = 0, // -1 (left) to 1 (right)
+  pan: number = 0,
   useCountIn: boolean = false,
   autoIncrement: number = 0,
   shouldLoop: boolean = false,
@@ -42,6 +42,7 @@ export const useMetronomeEngine = (
   const [bpmOffset, setBpmOffset] = useState(0);
   
   const audioContext = useRef<AudioContext | null>(null);
+  const masterGain = useRef<GainNode | null>(null);
   const pannerNode = useRef<StereoPannerNode | null>(null);
   const timerID = useRef<number | null>(null);
   const nextNoteTime = useRef(0);
@@ -81,9 +82,12 @@ export const useMetronomeEngine = (
       stopAtEndOfBlock
     };
 
-    // Update panner value if it exists
-    if (pannerNode.current) {
-      pannerNode.current.pan.setTargetAtTime(pan, audioContext.current?.currentTime || 0, 0.1);
+    // Real-time updates for master controls
+    if (masterGain.current && audioContext.current) {
+      masterGain.current.gain.setTargetAtTime(volume, audioContext.current.currentTime, 0.05);
+    }
+    if (pannerNode.current && audioContext.current) {
+      pannerNode.current.pan.setTargetAtTime(pan, audioContext.current.currentTime, 0.05);
     }
   }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, pan, useCountIn, autoIncrement, bpmOffset, shouldLoop, stopAtEndOfBlock]);
 
@@ -108,7 +112,7 @@ export const useMetronomeEngine = (
   }, [isPlaying]);
 
   const playTone = useCallback((time: number, type: BeatType) => {
-    if (!audioContext.current || !pannerNode.current) return;
+    if (!audioContext.current || !masterGain.current) return;
     
     const { currentBlockIndex, sequence, isCountingIn } = stateRef.current;
     const block = sequence[currentBlockIndex];
@@ -144,14 +148,12 @@ export const useMetronomeEngine = (
       }
     }
 
-    // Apply 500% volume boost (volume is 0-5)
-    envelope.gain.value = stateRef.current.volume * gainMult;
-    osc.frequency.value = freq;
+    envelope.gain.setValueAtTime(gainMult, time);
+    osc.frequency.setValueAtTime(freq, time);
     envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
 
     osc.connect(envelope);
-    envelope.connect(pannerNode.current);
-    pannerNode.current.connect(audioContext.current.destination);
+    envelope.connect(masterGain.current);
 
     osc.start(time);
     osc.stop(time + 0.1);
@@ -269,8 +271,19 @@ export const useMetronomeEngine = (
   const togglePlay = useCallback(() => {
     if (!audioContext.current) {
       audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      masterGain.current = audioContext.current.createGain();
       pannerNode.current = audioContext.current.createStereoPanner();
+      
+      // Connect graph: osc -> envelope -> masterGain -> panner -> destination
+      masterGain.current.connect(pannerNode.current);
+      pannerNode.current.connect(audioContext.current.destination);
+      
+      masterGain.current.gain.value = stateRef.current.volume;
       pannerNode.current.pan.value = stateRef.current.pan;
+    }
+
+    if (audioContext.current.state === 'suspended') {
+      audioContext.current.resume();
     }
 
     if (isPlaying) {
