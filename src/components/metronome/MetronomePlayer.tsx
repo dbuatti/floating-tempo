@@ -1,18 +1,20 @@
 "use client";
 
 import React from 'react';
-import { Song, TempoBlock } from '@/hooks/use-metronome-engine';
+import { Song } from '@/hooks/use-metronome-engine';
 import MetronomeVisuals from './MetronomeVisuals';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
-import { RotateCcw, Play, Pause, Volume2 } from 'lucide-react';
+import { RotateCcw, Play, Pause, Volume2, MoveHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface MetronomePlayerProps {
   activeSong: Song;
   volume: number;
   setVolume: (v: number) => void;
+  pan: number;
+  setPan: (p: number) => void;
   accentColor: string;
   displayBpm: number;
   // Engine Props
@@ -29,6 +31,8 @@ const MetronomePlayer = ({
   activeSong, 
   volume, 
   setVolume, 
+  pan,
+  setPan,
   accentColor, 
   displayBpm,
   isPlaying,
@@ -82,6 +86,18 @@ const MetronomePlayer = ({
 
       <div className="flex flex-col items-center gap-12 mt-16">
         <div className="flex justify-center items-center gap-12">
+          <div className="flex flex-col items-center gap-4 w-20">
+            <MoveHorizontal size={24} className="text-white/30" />
+            <Slider 
+              value={[pan * 100]} 
+              onValueChange={(v) => setPan(v[0] / 100)} 
+              min={-100}
+              max={100} 
+              className="w-28 -rotate-90 mt-12" 
+            />
+            <span className="text-[8px] font-black uppercase tracking-widest text-white/20 mt-2">Pan</span>
+          </div>
+
           <Button size="lg" variant="outline" onClick={onReset} className="rounded-[2rem] w-20 h-20 p-0 border-white/10 bg-white/5">
             <RotateCcw size={28} className="text-white/60" />
           </Button>
@@ -97,7 +113,13 @@ const MetronomePlayer = ({
 
           <div className="flex flex-col items-center gap-4 w-20">
             <Volume2 size={24} className="text-white/30" />
-            <Slider value={[volume * 100]} onValueChange={(v) => setVolume(v[0] / 100)} max={100} className="w-28 -rotate-90 mt-12" />
+            <Slider 
+              value={[volume * 20]} // volume is 0-5, slider is 0-100
+              onValueChange={(v) => setVolume(v[0] / 20)} 
+              max={100} 
+              className="w-28 -rotate-90 mt-12" 
+            />
+            <span className="text-[8px] font-black uppercase tracking-widest text-white/20 mt-2">{Math.round(volume * 100)}%</span>
           </div>
         </div>
       </div>

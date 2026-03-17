@@ -8,7 +8,7 @@ export interface TempoBlock {
   timeSignature: number;
   subdivision: 1 | 2 | 4;
   isMuted?: boolean;
-  autoAdvance?: boolean; // New property: if true, continues to next block automatically
+  autoAdvance?: boolean;
 }
 
 export interface Song {
@@ -26,10 +26,11 @@ export const useMetronomeEngine = (
   sequence: TempoBlock[], 
   soundType: SoundType, 
   volume: number = 0.5,
+  pan: number = 0, // -1 (left) to 1 (right)
   useCountIn: boolean = false,
   autoIncrement: number = 0,
   shouldLoop: boolean = false,
-  stopAtEndOfBlock: boolean = false // This is now largely superseded by per-block autoAdvance
+  stopAtEndOfBlock: boolean = false
 ) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCountingIn, setIsCountingIn] = useState(false);
@@ -41,6 +42,7 @@ export const useMetronomeEngine = (
   const [bpmOffset, setBpmOffset] = useState(0);
   
   const audioContext = useRef<AudioContext | null>(null);
+  const pannerNode = useRef<StereoPannerNode | null>(null);
   const timerID = useRef<number | null>(null);
   const nextNoteTime = useRef(0);
   const lookahead = 25.0;
@@ -54,6 +56,7 @@ export const useMetronomeEngine = (
     currentBar: 0,
     sequence,
     volume,
+    pan,
     useCountIn,
     autoIncrement,
     bpmOffset: 0,
@@ -70,13 +73,19 @@ export const useMetronomeEngine = (
       currentBar, 
       sequence, 
       volume,
+      pan,
       useCountIn,
       autoIncrement,
       bpmOffset,
       shouldLoop,
       stopAtEndOfBlock
     };
-  }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, useCountIn, autoIncrement, bpmOffset, shouldLoop, stopAtEndOfBlock]);
+
+    // Update panner value if it exists
+    if (pannerNode.current) {
+      pannerNode.current.pan.setTargetAtTime(pan, audioContext.current?.currentTime || 0, 0.1);
+    }
+  }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, pan, useCountIn, autoIncrement, bpmOffset, shouldLoop, stopAtEndOfBlock]);
 
   useEffect(() => {
     let animationFrame: number;
@@ -99,7 +108,7 @@ export const useMetronomeEngine = (
   }, [isPlaying]);
 
   const playTone = useCallback((time: number, type: BeatType) => {
-    if (!audioContext.current) return;
+    if (!audioContext.current || !pannerNode.current) return;
     
     const { currentBlockIndex, sequence, isCountingIn } = stateRef.current;
     const block = sequence[currentBlockIndex];
@@ -135,12 +144,14 @@ export const useMetronomeEngine = (
       }
     }
 
+    // Apply 500% volume boost (volume is 0-5)
     envelope.gain.value = stateRef.current.volume * gainMult;
     osc.frequency.value = freq;
     envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
 
     osc.connect(envelope);
-    envelope.connect(audioContext.current.destination);
+    envelope.connect(pannerNode.current);
+    pannerNode.current.connect(audioContext.current.destination);
 
     osc.start(time);
     osc.stop(time + 0.1);
@@ -156,10 +167,8 @@ export const useMetronomeEngine = (
         currentBar, 
         sequence, 
         isCountingIn, 
-        autoIncrement, 
         bpmOffset, 
         shouldLoop,
-        stopAtEndOfBlock 
       } = stateRef.current;
       
       const block = sequence[currentBlockIndex];
@@ -169,7 +178,6 @@ export const useMetronomeEngine = (
         return;
       }
 
-      // Determine Beat Type
       let type: BeatType = 'normal';
       const isSubdivision = currentBeat % block.subdivision !== 0;
       
@@ -209,8 +217,6 @@ export const useMetronomeEngine = (
           nextIsCountingIn = false;
         }
       } else if (nextBar >= block.bars) {
-        // Handle Step Mode / Manual Trigger
-        // If autoAdvance is NOT set (or false), we stop and select the next block
         if (!block.autoAdvance && sequence.length > 1) {
           setIsPlaying(false);
           const advancedIdx = (currentBlockIndex + 1) % sequence.length;
@@ -229,7 +235,7 @@ export const useMetronomeEngine = (
         if (nextBlockIdx >= sequence.length) {
           if (shouldLoop) {
             nextBlockIdx = 0;
-            nextBpmOffset += autoIncrement;
+            nextBpmOffset += stateRef.current.autoIncrement;
           } else {
             setIsPlaying(false);
             if (timerID.current) clearTimeout(timerID.current);
@@ -263,6 +269,8 @@ export const useMetronomeEngine = (
   const togglePlay = useCallback(() => {
     if (!audioContext.current) {
       audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      pannerNode.current = audioContext.current.createStereoPanner();
+      pannerNode.current.pan.value = stateRef.current.pan;
     }
 
     if (isPlaying) {

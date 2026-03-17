@@ -74,6 +74,7 @@ const Index = () => {
   
   const [soundType, setSoundType] = useState<SoundType>('woodblock');
   const [volume, setVolume] = useState(0.5);
+  const [pan, setPan] = useState(0);
   const [useCountIn, setUseCountIn] = useState(false);
   const [isStageMode, setIsStageMode] = useState(false);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
@@ -135,6 +136,7 @@ const Index = () => {
     activeSong?.sequence || [], 
     soundType, 
     volume, 
+    pan,
     useCountIn, 
     0, 
     activeSong?.shouldLoop || false,
@@ -313,6 +315,8 @@ const Index = () => {
             activeSong={activeSong}
             volume={volume}
             setVolume={setVolume}
+            pan={pan}
+            setPan={setPan}
             accentColor={accentColor}
             displayBpm={displayBpm}
             isPlaying={isPlaying}
