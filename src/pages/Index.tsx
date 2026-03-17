@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Song, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useMetronomeEngine, Song, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
 import MetronomePlayer from '@/components/metronome/MetronomePlayer';
 import TapTempo from '@/components/metronome/TapTempo';
 import PresetsManager from '@/components/metronome/PresetsManager';
@@ -11,6 +11,7 @@ import AuthButton from '@/components/auth/AuthButton';
 import QuickAddSong from '@/components/metronome/QuickAddSong';
 import SongListItem from '@/components/metronome/SongListItem';
 import SongEditorModal from '@/components/metronome/SongEditorModal';
+import StageView from '@/components/metronome/StageView';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -23,6 +24,7 @@ import {
   Cloud
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 
 const DEFAULT_SONGS: Song[] = [
@@ -111,12 +113,52 @@ const Index = () => {
 
   const activeSong = useMemo(() => songs.find(s => s.id === activeSongId) || songs[0] || DEFAULT_SONGS[0], [songs, activeSongId]);
   const editingSong = useMemo(() => songs.find(s => s.id === editingSongId) || null, [songs, editingSongId]);
-  const displayBpm = (activeSong?.sequence?.[0]?.bpm || 120);
+
+  const { 
+    isPlaying, 
+    isCountingIn,
+    currentBlockIndex, 
+    currentBeat, 
+    currentBar, 
+    subdivisionProgress,
+    bpmOffset,
+    togglePlay, 
+    reset,
+    jumpToBlock
+  } = useMetronomeEngine(
+    activeSong?.sequence || [], 
+    soundType, 
+    volume, 
+    useCountIn, 
+    0, 
+    activeSong?.shouldLoop || false,
+    !!editingSongId
+  );
+
+  const currentBlock = activeSong?.sequence?.[currentBlockIndex];
+  const displayBpm = (currentBlock?.bpm || 120) + bpmOffset;
   const accentColor = useMemo(() => getBpmColor(displayBpm), [displayBpm]);
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+      
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key.toLowerCase() === 'r') {
+        reset();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePlay, reset]);
 
   const addSong = (newSong: Song) => {
     setSongs([...songs, newSong]);
     setActiveSongId(newSong.id);
+    reset();
   };
 
   const updateSong = (updatedSong: Song) => {
@@ -127,7 +169,10 @@ const Index = () => {
     if (songs.length <= 1) return;
     const newSongs = songs.filter(s => s.id !== id);
     setSongs(newSongs);
-    if (activeSongId === id) setActiveSongId(newSongs[0].id);
+    if (activeSongId === id) {
+      setActiveSongId(newSongs[0].id);
+      reset();
+    }
   };
 
   const handleLoadSetlist = (newSongs: Song[], name: string, id: string, isCloud: boolean) => {
@@ -136,16 +181,40 @@ const Index = () => {
     setActiveSetlistName(name);
     setActiveSetlistId(id);
     setIsCloudSetlist(isCloud);
+    reset();
   };
 
   return (
     <div className="min-h-screen bg-[#08080a] text-foreground selection:bg-primary/30 transition-all duration-700 overflow-x-hidden analog-noise">
+      <AnimatePresence>
+        {isStageMode && (
+          <StageView 
+            isPlaying={isPlaying}
+            isCountingIn={isCountingIn}
+            currentBlock={currentBlock}
+            currentBlockIndex={currentBlockIndex}
+            totalBlocks={activeSong?.sequence?.length || 0}
+            currentBeat={currentBeat}
+            currentBar={currentBar}
+            accentColor={accentColor}
+            displayBpm={displayBpm}
+            subdivisionProgress={subdivisionProgress}
+            activeSetlistName={activeSong?.name || activeSetlistName}
+            onTogglePlay={togglePlay}
+            onReset={reset}
+            onClose={() => setIsStageMode(false)}
+            onPrevBlock={() => currentBlockIndex > 0 && jumpToBlock(currentBlockIndex - 1)}
+            onNextBlock={() => currentBlockIndex < (activeSong?.sequence?.length || 0) - 1 && jumpToBlock(currentBlockIndex + 1)}
+          />
+        )}
+      </AnimatePresence>
+
       <SongEditorModal 
         song={editingSong}
         isOpen={!!editingSongId}
         onClose={() => setEditingSongId(null)}
         onUpdate={updateSong}
-        currentBlockIndex={-1}
+        currentBlockIndex={activeSongId === editingSongId ? currentBlockIndex : -1}
       />
 
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-16 relative z-10">
@@ -172,7 +241,7 @@ const Index = () => {
           <div className="flex flex-wrap items-center justify-center gap-5 p-2 bg-white/[0.02] rounded-[2rem] border border-white/5 backdrop-blur-xl relative z-50">
             <PresetsManager currentSongs={songs} onLoad={handleLoadSetlist} />
             <div className="w-[1px] h-8 bg-white/5 mx-2" />
-            <PracticeTimer onTimeUp={() => {}} isActive={false} />
+            <PracticeTimer onTimeUp={() => isPlaying && togglePlay()} isActive={isPlaying} />
             <div className="w-[1px] h-8 bg-white/5 mx-2" />
             <AuthButton />
           </div>
@@ -192,13 +261,17 @@ const Index = () => {
 
           <MetronomePlayer 
             activeSong={activeSong}
-            soundType={soundType}
             volume={volume}
             setVolume={setVolume}
-            useCountIn={useCountIn}
-            editingSongId={editingSongId}
             accentColor={accentColor}
             displayBpm={displayBpm}
+            isPlaying={isPlaying}
+            currentBlockIndex={currentBlockIndex}
+            currentBeat={currentBeat}
+            currentBar={currentBar}
+            subdivisionProgress={subdivisionProgress}
+            onTogglePlay={togglePlay}
+            onReset={reset}
           />
         </section>
 
@@ -218,9 +291,14 @@ const Index = () => {
                   key={song.id}
                   song={song}
                   isActive={activeSongId === song.id}
-                  isPlaying={false}
-                  onSelect={() => setActiveSongId(song.id)}
-                  onTogglePlay={() => {}}
+                  isPlaying={isPlaying && activeSongId === song.id}
+                  onSelect={() => {
+                    if (activeSongId !== song.id) {
+                      setActiveSongId(song.id);
+                      reset();
+                    }
+                  }}
+                  onTogglePlay={togglePlay}
                   onEdit={() => {
                     setActiveSongId(song.id);
                     setEditingSongId(song.id);

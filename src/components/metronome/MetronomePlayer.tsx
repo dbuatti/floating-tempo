@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo } from 'react';
-import { useMetronomeEngine, Song, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
+import React from 'react';
+import { Song, TempoBlock } from '@/hooks/use-metronome-engine';
 import MetronomeVisuals from './MetronomeVisuals';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,44 +11,34 @@ import { motion } from 'framer-motion';
 
 interface MetronomePlayerProps {
   activeSong: Song;
-  soundType: SoundType;
   volume: number;
   setVolume: (v: number) => void;
-  useCountIn: boolean;
-  onTogglePlay?: (isPlaying: boolean) => void;
-  editingSongId: string | null;
   accentColor: string;
   displayBpm: number;
+  // Engine Props
+  isPlaying: boolean;
+  currentBlockIndex: number;
+  currentBeat: number;
+  currentBar: number;
+  subdivisionProgress: number;
+  onTogglePlay: () => void;
+  onReset: () => void;
 }
 
 const MetronomePlayer = ({ 
   activeSong, 
-  soundType, 
   volume, 
   setVolume, 
-  useCountIn,
-  editingSongId,
-  accentColor,
-  displayBpm
+  accentColor, 
+  displayBpm,
+  isPlaying,
+  currentBlockIndex,
+  currentBeat,
+  currentBar,
+  subdivisionProgress,
+  onTogglePlay,
+  onReset
 }: MetronomePlayerProps) => {
-  const { 
-    isPlaying, 
-    currentBlockIndex, 
-    currentBeat, 
-    currentBar, 
-    subdivisionProgress,
-    togglePlay, 
-    reset,
-  } = useMetronomeEngine(
-    activeSong?.sequence || [], 
-    soundType, 
-    volume, 
-    useCountIn, 
-    0, 
-    activeSong?.shouldLoop || false,
-    !!editingSongId
-  );
-
   const currentBlock = activeSong?.sequence?.[currentBlockIndex];
 
   return (
@@ -92,13 +82,13 @@ const MetronomePlayer = ({
 
       <div className="flex flex-col items-center gap-12 mt-16">
         <div className="flex justify-center items-center gap-12">
-          <Button size="lg" variant="outline" onClick={reset} className="rounded-[2rem] w-20 h-20 p-0 border-white/10 bg-white/5">
+          <Button size="lg" variant="outline" onClick={onReset} className="rounded-[2rem] w-20 h-20 p-0 border-white/10 bg-white/5">
             <RotateCcw size={28} className="text-white/60" />
           </Button>
           
           <Button 
             size="lg" 
-            onClick={togglePlay}
+            onClick={onTogglePlay}
             style={{ backgroundColor: accentColor }}
             className="rounded-[4rem] w-32 h-32 p-0 shadow-2xl border-none"
           >
