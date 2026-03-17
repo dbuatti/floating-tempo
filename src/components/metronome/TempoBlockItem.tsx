@@ -3,7 +3,7 @@ import { TempoBlock } from '@/hooks/use-metronome-engine';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Trash2, ChevronUp, ChevronDown, Music, Copy, Volume2, VolumeX, GripVertical, Play } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown, Music, Copy, Volume2, VolumeX, GripVertical, Play, FastForward } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
@@ -164,6 +164,23 @@ const TempoBlockItem = ({
 
         {/* Actions */}
         <div className="flex items-center gap-2 relative z-10 shrink-0" onClick={e => e.stopPropagation()}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => onUpdate(block.id, { autoAdvance: !block.autoAdvance })}
+                className={cn(
+                  "w-10 h-10 rounded-xl transition-all",
+                  block.autoAdvance ? "text-primary bg-primary/10" : "text-white/10 hover:text-primary hover:bg-primary/10"
+                )}
+              >
+                <FastForward size={18} className={cn(!block.autoAdvance && "opacity-40")} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{block.autoAdvance ? "Auto-Advance ON" : "Auto-Advance OFF (Manual Trigger)"}</TooltipContent>
+          </Tooltip>
+
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 

@@ -8,6 +8,7 @@ export interface TempoBlock {
   timeSignature: number;
   subdivision: 1 | 2 | 4;
   isMuted?: boolean;
+  autoAdvance?: boolean; // New property: if true, continues to next block automatically
 }
 
 export interface Song {
@@ -28,7 +29,7 @@ export const useMetronomeEngine = (
   useCountIn: boolean = false,
   autoIncrement: number = 0,
   shouldLoop: boolean = false,
-  stopAtEndOfBlock: boolean = false
+  stopAtEndOfBlock: boolean = false // This is now largely superseded by per-block autoAdvance
 ) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCountingIn, setIsCountingIn] = useState(false);
@@ -208,8 +209,9 @@ export const useMetronomeEngine = (
           nextIsCountingIn = false;
         }
       } else if (nextBar >= block.bars) {
-        // Handle Step Mode (Stop at end of block)
-        if (stopAtEndOfBlock && sequence.length > 1) {
+        // Handle Step Mode / Manual Trigger
+        // If autoAdvance is NOT set (or false), we stop and select the next block
+        if (!block.autoAdvance && sequence.length > 1) {
           setIsPlaying(false);
           const advancedIdx = (currentBlockIndex + 1) % sequence.length;
           setCurrentBlockIndex(advancedIdx);
