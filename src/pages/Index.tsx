@@ -159,7 +159,7 @@ const Index = () => {
 
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-16 relative z-10">
         {/* Header */}
-        <header className="flex flex-col md:flex-row items-center justify-between gap-10">
+        <header className="flex flex-col md:flex-row items-center justify-between gap-10 relative z-50">
           <div className="flex items-center gap-6">
             <div className="w-16 h-16 rounded-[2rem] bg-primary flex items-center justify-center shadow-[0_20px_50px_rgba(168,85,247,0.3)]">
               <Music2 className="text-white w-8 h-8" />
@@ -174,7 +174,7 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="flex flex-wrap items-center justify-center gap-5 p-2 bg-white/[0.02] rounded-[2rem] border border-white/5 backdrop-blur-xl">
+          <div className="flex flex-wrap items-center justify-center gap-5 p-2 bg-white/[0.02] rounded-[2rem] border border-white/5 backdrop-blur-xl relative z-50">
             <PresetsManager currentSequence={sequence} onLoad={handleLoadSetlist} />
             <div className="w-[1px] h-8 bg-white/5 mx-2" />
             <PracticeTimer onTimeUp={() => isPlaying && togglePlay()} isActive={isPlaying} />
@@ -184,7 +184,7 @@ const Index = () => {
         </header>
 
         {/* Active Setlist Focus */}
-        <section className="space-y-10">
+        <section className="space-y-10 relative z-10">
           <div className="flex items-center justify-between px-6">
             <div className="flex items-center gap-4">
               <div className="w-3 h-6 rounded-full bg-primary shadow-2xl" />
@@ -258,7 +258,7 @@ const Index = () => {
         </section>
 
         {/* Timeline & Quick Add */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 relative z-10">
           <div className="lg:col-span-8 space-y-10">
             <div className="flex items-center justify-between px-6">
               <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Timeline Editor</h2>
