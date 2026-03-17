@@ -87,7 +87,10 @@ const SongEditorModal = ({ song, isOpen, onClose, onUpdate, currentBlockIndex }:
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl bg-[#0c0c0e] border-white/10 rounded-[3rem] p-0 overflow-hidden">
+      <DialogContent 
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        className="max-w-4xl bg-[#0c0c0e] border-white/10 rounded-[3rem] p-0 overflow-hidden"
+      >
         <div className="p-8 space-y-8">
           <DialogHeader className="flex flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-4 flex-1 mr-4">

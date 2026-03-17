@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useMetronomeEngine, Song, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
 import VisualFeedback from '@/components/metronome/VisualFeedback';
 import TapTempo from '@/components/metronome/TapTempo';
@@ -105,6 +105,23 @@ const Index = () => {
   const displayBpm = (currentBlock?.bpm || 120) + bpmOffset;
   const accentColor = useMemo(() => getBpmColor(displayBpm), [displayBpm]);
 
+  const handleSpace = useCallback(() => {
+    if (isPlaying) {
+      togglePlay();
+    } else {
+      const totalBlocks = activeSong?.sequence.length || 0;
+      if (totalBlocks > 1) {
+        // If we are not at the very beginning of the first block, advance to next
+        const isAtStartOfFirstBlock = currentBlockIndex === 0 && currentBar === 0 && currentBeat === 0;
+        if (!isAtStartOfFirstBlock) {
+          const nextIdx = (currentBlockIndex + 1) % totalBlocks;
+          jumpToBlock(nextIdx);
+        }
+      }
+      togglePlay();
+    }
+  }, [isPlaying, togglePlay, currentBlockIndex, currentBar, currentBeat, activeSong, jumpToBlock]);
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -112,7 +129,7 @@ const Index = () => {
       
       if (e.code === 'Space') {
         e.preventDefault();
-        togglePlay();
+        handleSpace();
       } else if (e.key.toLowerCase() === 'r') {
         reset();
       } else if (e.key.toLowerCase() === 's') {
@@ -121,7 +138,7 @@ const Index = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePlay, reset]);
+  }, [handleSpace, reset]);
 
   const addSong = (newSong: Song) => {
     setSongs([...songs, newSong]);
