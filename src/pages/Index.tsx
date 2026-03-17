@@ -53,7 +53,12 @@ const getBpmColor = (bpm: number) => {
 const Index = () => {
   const [songs, setSongs] = useState<Song[]>(() => {
     const saved = localStorage.getItem('metronome-songs');
-    return saved ? JSON.parse(saved) : DEFAULT_SONGS;
+    try {
+      const parsed = saved ? JSON.parse(saved) : null;
+      return (parsed && Array.isArray(parsed) && parsed.length > 0) ? parsed : DEFAULT_SONGS;
+    } catch (e) {
+      return DEFAULT_SONGS;
+    }
   });
   
   const [activeSongId, setActiveSongId] = useState<string>(() => {
@@ -91,7 +96,9 @@ const Index = () => {
 
   // Auto-save effect
   useEffect(() => {
-    localStorage.setItem('metronome-songs', JSON.stringify(songs));
+    if (songs.length > 0) {
+      localStorage.setItem('metronome-songs', JSON.stringify(songs));
+    }
     localStorage.setItem('active-song-id', activeSongId);
     localStorage.setItem('active-setlist-name', activeSetlistName);
     localStorage.setItem('active-setlist-id', activeSetlistId || '');
@@ -122,7 +129,7 @@ const Index = () => {
   }, [songs, activeSongId, activeSetlistName, activeSetlistId, isCloudSetlist, user]);
 
   const activeSong = useMemo(() => 
-    songs.find(s => s.id === activeSongId) || songs[0], 
+    songs.find(s => s.id === activeSongId) || songs[0] || DEFAULT_SONGS[0], 
   [songs, activeSongId]);
 
   const editingSong = useMemo(() => 
@@ -150,7 +157,7 @@ const Index = () => {
     !!editingSongId
   );
 
-  const currentBlock = activeSong?.sequence[currentBlockIndex];
+  const currentBlock = activeSong?.sequence?.[currentBlockIndex];
   const displayBpm = (currentBlock?.bpm || 120) + bpmOffset;
   const accentColor = useMemo(() => getBpmColor(displayBpm), [displayBpm]);
 
@@ -158,7 +165,7 @@ const Index = () => {
     if (isPlaying) {
       togglePlay();
     } else {
-      const totalBlocks = activeSong?.sequence.length || 0;
+      const totalBlocks = activeSong?.sequence?.length || 0;
       if (totalBlocks > 1) {
         const isAtStartOfFirstBlock = currentBlockIndex === 0 && currentBar === 0 && currentBeat === 0;
         if (!isAtStartOfFirstBlock) {
@@ -225,7 +232,7 @@ const Index = () => {
             isCountingIn={isCountingIn}
             currentBlock={currentBlock}
             currentBlockIndex={currentBlockIndex}
-            totalBlocks={activeSong?.sequence.length || 0}
+            totalBlocks={activeSong?.sequence?.length || 0}
             currentBeat={currentBeat}
             currentBar={currentBar}
             accentColor={accentColor}
@@ -236,7 +243,7 @@ const Index = () => {
             onReset={reset}
             onClose={() => setIsStageMode(false)}
             onPrevBlock={() => currentBlockIndex > 0 && jumpToBlock(currentBlockIndex - 1)} 
-            onNextBlock={() => currentBlockIndex < (activeSong?.sequence.length || 0) - 1 && jumpToBlock(currentBlockIndex + 1)} 
+            onNextBlock={() => currentBlockIndex < (activeSong?.sequence?.length || 0) - 1 && jumpToBlock(currentBlockIndex + 1)} 
           />
         )}
       </AnimatePresence>
@@ -320,7 +327,7 @@ const Index = () => {
                 <div className="flex items-center gap-6 px-8 py-3 bg-white/[0.03] rounded-full border border-white/10">
                   <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Part {currentBlockIndex + 1}</span>
                   <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-                  <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Bar {currentBar + 1} / {currentBlock?.bars}</span>
+                  <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Bar {currentBar + 1} / {currentBlock?.bars || 0}</span>
                 </div>
               </div>
             </div>
@@ -423,8 +430,10 @@ const Index = () => {
                 <TapTempo onTempoChange={(bpm) => {
                   if (activeSong) {
                     const updatedSequence = [...activeSong.sequence];
-                    updatedSequence[0] = { ...updatedSequence[0], bpm };
-                    updateSong({ ...activeSong, sequence: updatedSequence });
+                    if (updatedSequence[0]) {
+                      updatedSequence[0] = { ...updatedSequence[0], bpm };
+                      updateSong({ ...activeSong, sequence: updatedSequence });
+                    }
                   }
                 }} />
               </div>
