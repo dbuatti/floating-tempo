@@ -19,7 +19,7 @@ interface Preset {
 
 interface PresetsManagerProps {
   currentSequence: TempoBlock[];
-  onLoad: (sequence: TempoBlock[]) => void;
+  onLoad: (sequence: TempoBlock[], name: string) => void;
 }
 
 const PresetsManager = ({ currentSequence, onLoad }: PresetsManagerProps) => {
@@ -176,7 +176,7 @@ const PresetsManager = ({ currentSequence, onLoad }: PresetsManagerProps) => {
                     variant="ghost" 
                     className="flex-1 justify-start text-xs font-bold truncate rounded-xl hover:bg-primary/10 hover:text-primary h-10 px-3"
                     onClick={() => {
-                      onLoad(preset.sequence);
+                      onLoad(preset.sequence, preset.name);
                       setIsOpen(false);
                       showSuccess(`Loaded "${preset.name}"`);
                     }}

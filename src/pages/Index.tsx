@@ -127,7 +127,7 @@ const Index = () => {
     }
   };
 
-  const handleLoadSetlist = (newSequence: TempoBlock[]) => {
+  const handleLoadSetlist = (newSequence: TempoBlock[], name: string) => {
     const newSong: Song = {
       id: Math.random().toString(36).substr(2, 9),
       name: 'Imported Setlist',
@@ -135,6 +135,7 @@ const Index = () => {
     };
     setSongs([newSong]);
     setActiveSongId(newSong.id);
+    setActiveSetlistName(name);
     reset();
   };
 
@@ -201,7 +202,7 @@ const Index = () => {
           <div className="flex items-center justify-between px-6">
             <div className="flex items-center gap-4">
               <div className="w-3 h-6 rounded-full bg-primary shadow-2xl" />
-              <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Now Playing: {activeSong?.name}</h2>
+              <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Performance Focus</h2>
             </div>
             <Button 
               onClick={() => setIsStageMode(true)}
@@ -214,6 +215,12 @@ const Index = () => {
 
           <Card className="bg-white/[0.02] border-white/5 p-16 relative overflow-hidden backdrop-blur-[100px] rounded-[4rem]">
             <div className="flex flex-col items-center text-center space-y-10 mb-16">
+              {/* Setlist & Song Labels */}
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/60">{activeSetlistName}</span>
+                <h2 className="text-3xl font-black text-white tracking-tight uppercase">{activeSong?.name}</h2>
+              </div>
+
               <div className="relative flex items-center justify-center">
                 <motion.div
                   key={displayBpm}
