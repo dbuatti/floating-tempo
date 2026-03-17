@@ -51,12 +51,17 @@ const getBpmColor = (bpm: number) => {
 };
 
 const Index = () => {
+  // Debug: Render tracking
+  const renderCount = useRef(0);
+  renderCount.current++;
+  console.log(`[Fluid] Render #${renderCount.current}`);
+
   const [songs, setSongs] = useState<Song[]>(() => {
     const saved = localStorage.getItem('metronome-songs');
     try {
       const parsed = saved ? JSON.parse(saved) : null;
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-        // Validate and repair songs
+        console.log("[Fluid] Initialized with saved songs");
         return (parsed as Song[]).map(song => ({
           ...song,
           sequence: Array.isArray(song.sequence) 
@@ -64,8 +69,10 @@ const Index = () => {
             : [{ id: Math.random().toString(36).substr(2, 9), name: 'Main', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 as const }]
         }));
       }
+      console.log("[Fluid] Initialized with default songs");
       return DEFAULT_SONGS;
     } catch (e) {
+      console.error("[Fluid] Failed to parse initial songs", e);
       return DEFAULT_SONGS;
     }
   });
@@ -96,15 +103,27 @@ const Index = () => {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    console.log("[Fluid] Setting up auth listener");
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      console.log("[Fluid] Initial user fetch:", user?.email);
+      setUser(user);
+    });
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[Fluid] Auth state change:", event, session?.user?.email);
       setUser(session?.user ?? null);
     });
-    return () => subscription.unsubscribe();
+    
+    return () => {
+      console.log("[Fluid] Cleaning up auth listener");
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Auto-save effect
+  // Auto-save effect with stability guard
   useEffect(() => {
+    console.log("[Fluid] Auto-save effect triggered");
+    
     if (songs.length > 0) {
       localStorage.setItem('metronome-songs', JSON.stringify(songs));
     }
@@ -114,37 +133,54 @@ const Index = () => {
     localStorage.setItem('is-cloud-setlist', String(isCloudSetlist));
 
     const syncSetlist = async () => {
-      if (!activeSetlistId) return;
+      if (!activeSetlistId) {
+        console.log("[Fluid] No active setlist ID, skipping cloud sync");
+        return;
+      }
       
+      console.log("[Fluid] Starting sync for setlist:", activeSetlistId);
       setIsSyncing(true);
       try {
         if (isCloudSetlist && user) {
-          await supabase
+          console.log("[Fluid] Syncing to Supabase...");
+          const { error } = await supabase
             .from('setlists')
             .update({ songs: songs })
             .eq('id', activeSetlistId);
+          if (error) throw error;
+          console.log("[Fluid] Supabase sync successful");
         } else {
+          console.log("[Fluid] Syncing to LocalStorage presets...");
           const savedLocal = localStorage.getItem('metronome-presets');
           const localSets = savedLocal ? JSON.parse(savedLocal) : [];
           const updated = localSets.map((s: any) => 
             s.id === activeSetlistId ? { ...s, songs: songs } : s
           );
           localStorage.setItem('metronome-presets', JSON.stringify(updated));
+          console.log("[Fluid] LocalStorage sync successful");
         }
       } catch (error) {
-        console.error("Sync failed:", error);
+        console.error("[Fluid] Sync failed:", error);
       } finally {
-        setTimeout(() => setIsSyncing(false), 1000);
+        setTimeout(() => {
+          console.log("[Fluid] Sync indicator cleared");
+          setIsSyncing(false);
+        }, 1000);
       }
     };
 
     const timeoutId = setTimeout(syncSetlist, 2000);
-    return () => clearTimeout(timeoutId);
+    return () => {
+      console.log("[Fluid] Cleaning up auto-save timeout");
+      clearTimeout(timeoutId);
+    };
   }, [songs, activeSongId, activeSetlistName, activeSetlistId, isCloudSetlist, user]);
 
-  const activeSong = useMemo(() => 
-    songs.find(s => s.id === activeSongId) || songs[0] || DEFAULT_SONGS[0], 
-  [songs, activeSongId]);
+  const activeSong = useMemo(() => {
+    const found = songs.find(s => s.id === activeSongId) || songs[0] || DEFAULT_SONGS[0];
+    console.log("[Fluid] Recalculated activeSong:", found?.name);
+    return found;
+  }, [songs, activeSongId]);
 
   const editingSong = useMemo(() => 
     songs.find(s => s.id === editingSongId) || null,
@@ -176,6 +212,7 @@ const Index = () => {
   const accentColor = useMemo(() => getBpmColor(displayBpm), [displayBpm]);
 
   const handleSpace = useCallback(() => {
+    console.log("[Fluid] Spacebar pressed");
     if (isPlaying) {
       togglePlay();
     } else {
@@ -184,6 +221,7 @@ const Index = () => {
         const isAtStartOfFirstBlock = currentBlockIndex === 0 && currentBar === 0 && currentBeat === 0;
         if (!isAtStartOfFirstBlock) {
           const nextIdx = (currentBlockIndex + 1) % totalBlocks;
+          console.log("[Fluid] Advancing to next block before play:", nextIdx);
           jumpToBlock(nextIdx);
         }
       }
@@ -199,8 +237,10 @@ const Index = () => {
         e.preventDefault();
         handleSpace();
       } else if (e.key.toLowerCase() === 'r') {
+        console.log("[Fluid] 'R' pressed - Resetting");
         reset();
       } else if (e.key.toLowerCase() === 's') {
+        console.log("[Fluid] 'S' pressed - Toggling Stage Mode");
         setIsStageMode(prev => !prev);
       }
     };
@@ -209,16 +249,19 @@ const Index = () => {
   }, [handleSpace, reset]);
 
   const addSong = (newSong: Song) => {
+    console.log("[Fluid] Adding new song:", newSong.name);
     setSongs([...songs, newSong]);
     setActiveSongId(newSong.id);
     reset();
   };
 
   const updateSong = (updatedSong: Song) => {
+    console.log("[Fluid] Updating song:", updatedSong.name);
     setSongs(songs.map(s => s.id === updatedSong.id ? updatedSong : s));
   };
 
   const deleteSong = (id: string) => {
+    console.log("[Fluid] Deleting song ID:", id);
     if (songs.length <= 1) return;
     const newSongs = songs.filter(s => s.id !== id);
     setSongs(newSongs);
@@ -229,7 +272,7 @@ const Index = () => {
   };
 
   const handleLoadSetlist = (newSongs: Song[], name: string, id: string, isCloud: boolean) => {
-    // Ensure loaded songs have valid sequences
+    console.log("[Fluid] Loading setlist:", name, "ID:", id, "Cloud:", isCloud);
     const validatedSongs: Song[] = newSongs.map(song => ({
       ...song,
       sequence: Array.isArray(song.sequence) 
@@ -406,12 +449,14 @@ const Index = () => {
                   isPlaying={isPlaying}
                   onSelect={() => {
                     if (activeSongId !== song.id) {
+                      console.log("[Fluid] Selecting song:", song.name);
                       setActiveSongId(song.id);
                       reset();
                     }
                   }}
                   onTogglePlay={togglePlay}
                   onEdit={() => {
+                    console.log("[Fluid] Editing song:", song.name);
                     setActiveSongId(song.id);
                     setEditingSongId(song.id);
                   }}
@@ -444,12 +489,16 @@ const Index = () => {
                   <Switch 
                     id="loop-toggle" 
                     checked={activeSong?.shouldLoop || false} 
-                    onCheckedChange={(checked) => activeSong && updateSong({ ...activeSong, shouldLoop: checked })}
+                    onCheckedChange={(checked) => {
+                      console.log("[Fluid] Toggling loop for active song:", checked);
+                      activeSong && updateSong({ ...activeSong, shouldLoop: checked });
+                    }}
                     className="data-[state=checked]:bg-primary"
                   />
                 </div>
 
                 <TapTempo onTempoChange={(bpm) => {
+                  console.log("[Fluid] Tap tempo changed BPM to:", bpm);
                   if (activeSong) {
                     const updatedSequence = [...activeSong.sequence];
                     if (updatedSequence[0]) {
