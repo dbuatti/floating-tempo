@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { RotateCcw, Play, Pause, Volume2, MoveHorizontal } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface MetronomePlayerProps {
   activeSong: Song;
@@ -85,55 +86,75 @@ const MetronomePlayer = ({
       />
 
       <div className="flex flex-col items-center gap-12 mt-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-12 w-full max-w-3xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-16 w-full max-w-4xl">
           
           {/* Panning Control (Horizontal) */}
-          <div className="flex flex-col items-center gap-4 order-2 md:order-1">
-            <div className="flex items-center justify-between w-full px-2">
-              <span className="text-[10px] font-black text-white/20">L</span>
-              <MoveHorizontal size={14} className="text-white/10" />
-              <span className="text-[10px] font-black text-white/20">R</span>
+          <div className="flex flex-col items-center gap-6 order-2 md:order-1 group">
+            <div className="flex items-center justify-between w-full px-4">
+              <span className={cn("text-[10px] font-black transition-colors", pan < -0.1 ? "text-primary" : "text-white/20")}>L</span>
+              <div className="flex items-center gap-2">
+                <MoveHorizontal size={12} className="text-white/10" />
+                <span className="text-[9px] font-mono font-black text-white/40">
+                  {pan === 0 ? "C" : `${Math.abs(Math.round(pan * 100))}${pan < 0 ? 'L' : 'R'}`}
+                </span>
+              </div>
+              <span className={cn("text-[10px] font-black transition-colors", pan > 0.1 ? "text-primary" : "text-white/20")}>R</span>
             </div>
-            <Slider 
-              value={[pan * 100]} 
-              onValueChange={(v) => setPan(v[0] / 100)} 
-              min={-100}
-              max={100} 
-              className="w-full" 
-            />
-            <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Stereo Pan</span>
+            <div className="w-full px-2 py-4">
+              <Slider 
+                value={[pan * 100]} 
+                onValueChange={(v) => setPan(v[0] / 100)} 
+                min={-100}
+                max={100} 
+                step={1}
+                className="cursor-pointer"
+              />
+            </div>
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/10 group-hover:text-white/30 transition-colors">Stereo Position</span>
           </div>
 
           {/* Main Transport Controls */}
-          <div className="flex items-center justify-center gap-8 order-1 md:order-2">
-            <Button size="lg" variant="outline" onClick={onReset} className="rounded-[2rem] w-20 h-20 p-0 border-white/10 bg-white/5 hover:bg-white/10 transition-all">
-              <RotateCcw size={28} className="text-white/60" />
+          <div className="flex items-center justify-center gap-10 order-1 md:order-2">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              onClick={onReset} 
+              className="rounded-[2.5rem] w-24 h-24 p-0 border-white/5 bg-white/[0.03] hover:bg-white/10 hover:border-white/20 transition-all group"
+            >
+              <RotateCcw size={32} className="text-white/40 group-hover:text-white/80 transition-colors" />
             </Button>
             
             <Button 
               size="lg" 
               onClick={onTogglePlay}
-              style={{ backgroundColor: accentColor }}
-              className="rounded-[4rem] w-32 h-32 p-0 shadow-2xl border-none transition-all hover:scale-105 active:scale-95"
+              style={{ 
+                backgroundColor: accentColor,
+                boxShadow: isPlaying ? `0 0 60px ${accentColor}44` : 'none'
+              }}
+              className="rounded-[5rem] w-40 h-40 p-0 border-none transition-all duration-500 hover:scale-105 active:scale-95 shadow-2xl"
             >
-              {isPlaying ? <Pause size={56} fill="currentColor" /> : <Play size={56} fill="currentColor" className="ml-3" />}
+              {isPlaying ? <Pause size={64} fill="currentColor" /> : <Play size={64} fill="currentColor" className="ml-4" />}
             </Button>
           </div>
 
           {/* Volume Control (Vertical Fader) */}
-          <div className="flex flex-col items-center gap-4 order-3">
-            <div className="h-32 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-6 order-3 group">
+            <div className="h-48 flex items-center justify-center px-8 py-4 bg-white/[0.02] rounded-[2rem] border border-white/5 group-hover:border-white/10 transition-all">
               <Slider 
                 value={[volume * 20]} // volume is 0-5, slider is 0-100
                 onValueChange={(v) => setVolume(v[0] / 20)} 
                 max={100} 
+                step={1}
                 orientation="vertical"
-                className="h-full" 
+                className="h-full cursor-pointer" 
               />
             </div>
-            <div className="flex flex-col items-center gap-1">
-              <Volume2 size={16} className="text-white/30" />
-              <span className="text-[8px] font-black uppercase tracking-widest text-white/20">{Math.round(volume * 100)}% Gain</span>
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Volume2 size={14} className={cn("transition-colors", volume > 0 ? "text-primary" : "text-white/20")} />
+                <span className="text-xs font-mono font-black text-white/60">{Math.round(volume * 100)}%</span>
+              </div>
+              <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/10 group-hover:text-white/30 transition-colors">Output Gain</span>
             </div>
           </div>
 
