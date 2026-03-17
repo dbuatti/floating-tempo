@@ -19,6 +19,8 @@ export interface Song {
 
 export type SoundType = 'woodblock' | 'digital' | 'cowbell';
 
+type BeatType = 'accent' | 'secondary' | 'normal' | 'subdivision';
+
 export const useMetronomeEngine = (
   sequence: TempoBlock[], 
   soundType: SoundType, 
@@ -72,7 +74,6 @@ export const useMetronomeEngine = (
     };
   }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, useCountIn, autoIncrement, bpmOffset, shouldLoop]);
 
-  // Animation loop for smooth subdivision progress
   useEffect(() => {
     let animationFrame: number;
     const updateProgress = () => {
@@ -93,7 +94,7 @@ export const useMetronomeEngine = (
     return () => cancelAnimationFrame(animationFrame);
   }, [isPlaying]);
 
-  const playTone = useCallback((time: number, isFirstBeat: boolean, isSubdivision: boolean, isCountInTone: boolean = false) => {
+  const playTone = useCallback((time: number, type: BeatType) => {
     if (!audioContext.current) return;
     
     const { currentBlockIndex, sequence, isCountingIn } = stateRef.current;
@@ -105,21 +106,32 @@ export const useMetronomeEngine = (
     const envelope = audioContext.current.createGain();
 
     let freq = 800;
+    let gainMult = 1.0;
+
     if (soundType === 'woodblock') {
-      freq = isFirstBeat ? 1200 : 800;
+      switch (type) {
+        case 'accent': freq = 1200; break;
+        case 'secondary': freq = 1000; gainMult = 0.8; break;
+        case 'normal': freq = 800; gainMult = 0.7; break;
+        case 'subdivision': freq = 600; gainMult = 0.4; break;
+      }
     } else if (soundType === 'digital') {
-      freq = isFirstBeat ? 1000 : 500;
-    } else {
-      freq = isFirstBeat ? 800 : 400;
+      switch (type) {
+        case 'accent': freq = 1000; break;
+        case 'secondary': freq = 800; gainMult = 0.8; break;
+        case 'normal': freq = 500; gainMult = 0.7; break;
+        case 'subdivision': freq = 400; gainMult = 0.4; break;
+      }
+    } else { // cowbell
+      switch (type) {
+        case 'accent': freq = 800; break;
+        case 'secondary': freq = 700; gainMult = 0.8; break;
+        case 'normal': freq = 400; gainMult = 0.7; break;
+        case 'subdivision': freq = 300; gainMult = 0.4; break;
+      }
     }
 
-    if (isSubdivision) {
-      freq *= 0.6;
-      envelope.gain.value = stateRef.current.volume * 0.4;
-    } else {
-      envelope.gain.value = stateRef.current.volume;
-    }
-
+    envelope.gain.value = stateRef.current.volume * gainMult;
     osc.frequency.value = freq;
     envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
 
@@ -142,10 +154,25 @@ export const useMetronomeEngine = (
         return;
       }
 
-      const isFirstBeat = currentBeat === 0;
+      // Determine Beat Type
+      let type: BeatType = 'normal';
       const isSubdivision = currentBeat % block.subdivision !== 0;
       
-      playTone(nextNoteTime.current, isFirstBeat, isSubdivision, isCountingIn);
+      if (isSubdivision) {
+        type = 'subdivision';
+      } else {
+        const mainBeat = currentBeat / block.subdivision;
+        if (mainBeat === 0) {
+          type = 'accent';
+        } else if (block.timeSignature === 6 && mainBeat === 3) {
+          // Secondary accent for 6/8 on beat 4
+          type = 'secondary';
+        } else {
+          type = 'normal';
+        }
+      }
+      
+      playTone(nextNoteTime.current, type);
 
       const currentBpm = block.bpm + bpmOffset;
       const secondsPerBeat = 60.0 / currentBpm / block.subdivision;
@@ -175,7 +202,6 @@ export const useMetronomeEngine = (
             nextBlockIdx = 0;
             nextBpmOffset += autoIncrement;
           } else {
-            // Stop playing at the end of the sequence
             setIsPlaying(false);
             if (timerID.current) clearTimeout(timerID.current);
             return;
