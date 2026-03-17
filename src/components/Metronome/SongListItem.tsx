@@ -4,7 +4,7 @@ import React from 'react';
 import { Song } from '@/hooks/use-metronome-engine';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Settings2, Trash2, Music, Layers } from 'lucide-react';
+import { Play, Pause, Settings2, Trash2, Music, Layers, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -55,7 +55,12 @@ const SongListItem = ({ song, isActive, isPlaying, onSelect, onTogglePlay, onEdi
         </Button>
 
         <div className="flex-1 min-w-0 relative z-10">
-          <h3 className="text-lg font-black text-white truncate tracking-tight">{song.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-black text-white truncate tracking-tight">{song.name}</h3>
+            {song.shouldLoop && (
+              <Repeat size={14} className="text-primary animate-pulse shrink-0" />
+            )}
+          </div>
           <div className="flex items-center gap-4 mt-1">
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-black uppercase tracking-widest text-white/20">BPM</span>

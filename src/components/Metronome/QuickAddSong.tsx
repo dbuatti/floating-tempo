@@ -42,29 +42,32 @@ const QuickAddSong = ({ onAdd }: QuickAddSongProps) => {
       
       // 1. Extract Bars (e.g., "16 bars")
       const barsMatch = cleanPart.match(/(\d+)\s*bars?/i);
-      const bars = barsMatch ? parseInt(barsMatch[1], 10) : 4; // Default to 4
+      const bars = barsMatch ? parseInt(barsMatch[1], 10) : 4;
       
       // 2. Extract Time Signature (e.g., "6/8", "4/4")
       const tsMatch = cleanPart.match(/(\d+)\/(\d+)/);
       let timeSignature = tsMatch ? parseInt(tsMatch[1], 10) : 4;
       
-      // 3. Extract BPM (e.g., "@ 114", "= 56", "120bpm")
+      // 3. Extract BPM and check for "dotted"
+      const isDotted = /dotted/i.test(cleanPart);
       const bpmMatch = cleanPart.match(/(?:@|=)\s*(\d+)/) || cleanPart.match(/(\d+)\s*bpm/i);
       let bpmVal = bpmMatch ? parseInt(bpmMatch[1], 10) : 0;
       
-      // Fallback: if no explicit BPM marker, look for any number that isn't the bars or TS
+      // Fallback for BPM
       if (!bpmVal) {
         const allNumbers = cleanPart.match(/\d+/g);
         if (allNumbers) {
           const usedNumbers = [];
           if (barsMatch) usedNumbers.push(barsMatch[1]);
           if (tsMatch) usedNumbers.push(tsMatch[1], tsMatch[2]);
-          
           const remaining = allNumbers.filter(n => !usedNumbers.includes(n));
-          if (remaining.length > 0) {
-            bpmVal = parseInt(remaining[0], 10);
-          }
+          if (remaining.length > 0) bpmVal = parseInt(remaining[0], 10);
         }
+      }
+
+      // Handle Dotted Crotchet for 6/8 (multiply by 3 for 8th note pulse)
+      if (isDotted && timeSignature === 6 && bpmVal > 0) {
+        bpmVal = bpmVal * 3;
       }
 
       if (bpmVal > 0) {
@@ -94,7 +97,7 @@ const QuickAddSong = ({ onAdd }: QuickAddSongProps) => {
     if (showAdvanced && advancedText.trim()) {
       sequence = parseAdvancedText(advancedText);
       if (sequence.length === 0) {
-        showError("Could not parse sequence. Try: '16 bars @ 114 then 31 bars @ 146'");
+        showError("Could not parse sequence. Try: '16 bars 6/8 @ dotted crotchet = 56'");
         return;
       }
     } else {
@@ -111,7 +114,8 @@ const QuickAddSong = ({ onAdd }: QuickAddSongProps) => {
     const newSong: Song = {
       id: Math.random().toString(36).substr(2, 9),
       name: name.trim(),
-      sequence
+      sequence,
+      shouldLoop: false
     };
 
     onAdd(newSong);
@@ -119,7 +123,7 @@ const QuickAddSong = ({ onAdd }: QuickAddSongProps) => {
     setBpm('');
     setAdvancedText('');
     nameInputRef.current?.focus();
-    showSuccess(`Added "${newSong.name}" with ${newSong.sequence.length} sections`);
+    showSuccess(`Added "${newSong.name}"`);
   };
 
   const handleSaveToLibrary = async () => {
@@ -146,15 +150,12 @@ const QuickAddSong = ({ onAdd }: QuickAddSongProps) => {
     });
 
     if (error) showError(error.message);
-    else {
-      showSuccess("Sequence saved to your library");
-    }
+    else showSuccess("Sequence saved to library");
     setIsSaving(false);
   };
 
   return (
     <div className="space-y-4">
-      {/* Main Add Card */}
       <div className="flex flex-col gap-4 p-6 bg-white/[0.02] rounded-[2.5rem] border border-white/5 backdrop-blur-xl shadow-2xl">
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
@@ -163,7 +164,7 @@ const QuickAddSong = ({ onAdd }: QuickAddSongProps) => {
             </div>
             <Input
               ref={nameInputRef}
-              placeholder="Song Title (e.g. He Lied To Me)"
+              placeholder="Song Title"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="bg-white/5 border-none h-12 rounded-2xl text-sm font-bold focus-visible:ring-primary/30 placeholder:text-white/10"
@@ -203,7 +204,6 @@ const QuickAddSong = ({ onAdd }: QuickAddSongProps) => {
         </div>
       </div>
 
-      {/* Advanced Parser Card */}
       <AnimatePresence>
         {showAdvanced && (
           <motion.div
@@ -216,15 +216,15 @@ const QuickAddSong = ({ onAdd }: QuickAddSongProps) => {
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
                   <Wand2 size={12} className="text-primary/40" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Advanced Sequence</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Advanced Parser</span>
                 </div>
                 <p className="text-[9px] text-white/10 uppercase tracking-tighter">
-                  Format: [Number] bars @ [Number] bpm
+                  Supports "dotted crotchet" for 6/8
                 </p>
               </div>
               
               <Textarea 
-                placeholder="e.g. 16 bars @ 114bpm then 31 bars @ 146bpm"
+                placeholder="e.g. 16 bars 6/8 @ dotted crotchet = 56"
                 value={advancedText}
                 onChange={(e) => setAdvancedText(e.target.value)}
                 className="min-h-[100px] bg-white/5 border-none rounded-2xl resize-none focus-visible:ring-primary/30 placeholder:text-white/10 text-xs font-medium p-4"
