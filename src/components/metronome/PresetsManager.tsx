@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { TempoBlock } from '@/hooks/use-metronome-engine';
+import { Song } from '@/hooks/use-metronome-engine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -13,23 +13,22 @@ import { cn } from '@/lib/utils';
 interface Preset {
   id: string;
   name: string;
-  sequence: TempoBlock[];
+  songs: Song[];
   is_cloud?: boolean;
 }
 
 interface PresetsManagerProps {
-  currentSequence: TempoBlock[];
-  onLoad: (sequence: TempoBlock[], name: string) => void;
+  currentSongs: Song[];
+  onLoad: (songs: Song[], name: string, id: string, isCloud: boolean) => void;
 }
 
-const PresetsManager = ({ currentSequence, onLoad }: PresetsManagerProps) => {
+const PresetsManager = ({ currentSongs, onLoad }: PresetsManagerProps) => {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [newPresetName, setNewPresetName] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  // Handle Auth State
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -38,11 +37,9 @@ const PresetsManager = ({ currentSequence, onLoad }: PresetsManagerProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch Presets (Local + Cloud)
   const fetchPresets = async () => {
     setLoading(true);
     
-    // 1. Get Local Presets
     const savedLocal = localStorage.getItem('metronome-presets');
     const localPresets: Preset[] = savedLocal ? JSON.parse(savedLocal) : [];
 
@@ -52,7 +49,6 @@ const PresetsManager = ({ currentSequence, onLoad }: PresetsManagerProps) => {
       return;
     }
 
-    // 2. Get Cloud Presets
     const { data, error } = await supabase
       .from('setlists')
       .select('*')
@@ -65,11 +61,10 @@ const PresetsManager = ({ currentSequence, onLoad }: PresetsManagerProps) => {
       const cloudPresets: Preset[] = (data || []).map(item => ({
         id: item.id,
         name: item.name,
-        sequence: item.songs as TempoBlock[],
+        songs: item.songs as Song[],
         is_cloud: true
       }));
       
-      // Merge (Cloud takes priority for same names)
       setPresets([...cloudPresets, ...localPresets.filter(lp => !cloudPresets.find(cp => cp.name === lp.name))]);
     }
     setLoading(false);
@@ -84,33 +79,35 @@ const PresetsManager = ({ currentSequence, onLoad }: PresetsManagerProps) => {
     setLoading(true);
 
     if (user) {
-      // Save to Supabase
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('setlists')
         .insert({
           user_id: user.id,
           name: newPresetName,
-          songs: currentSequence
-        });
+          songs: currentSongs
+        })
+        .select()
+        .single();
 
       if (error) {
         showError(error.message);
       } else {
         showSuccess(`"${newPresetName}" saved to cloud`);
+        onLoad(currentSongs, newPresetName, data.id, true);
         setNewPresetName('');
         fetchPresets();
       }
     } else {
-      // Save to Local
       const newPreset: Preset = {
         id: Math.random().toString(36).substr(2, 9),
         name: newPresetName,
-        sequence: currentSequence
+        songs: currentSongs
       };
       const updated = [newPreset, ...presets];
       setPresets(updated);
       localStorage.setItem('metronome-presets', JSON.stringify(updated.filter(p => !p.is_cloud)));
       showSuccess(`"${newPresetName}" saved locally`);
+      onLoad(currentSongs, newPresetName, newPreset.id, false);
       setNewPresetName('');
     }
     setLoading(false);
@@ -176,7 +173,7 @@ const PresetsManager = ({ currentSequence, onLoad }: PresetsManagerProps) => {
                     variant="ghost" 
                     className="flex-1 justify-start text-xs font-bold truncate rounded-xl hover:bg-primary/10 hover:text-primary h-10 px-3"
                     onClick={() => {
-                      onLoad(preset.sequence, preset.name);
+                      onLoad(preset.songs, preset.name, preset.id, !!preset.is_cloud);
                       setIsOpen(false);
                       showSuccess(`Loaded "${preset.name}"`);
                     }}

@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+"use client";
+
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useMetronomeEngine, Song, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
 import MetronomeVisuals from '@/components/metronome/MetronomeVisuals.tsx';
 import TapTempo from '@/components/metronome/TapTempo';
@@ -24,10 +26,12 @@ import {
   Maximize2,
   LayoutGrid,
   ListMusic,
-  Repeat
+  Repeat,
+  Cloud
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 const DEFAULT_SONGS: Song[] = [
   { 
@@ -59,18 +63,63 @@ const Index = () => {
   const [activeSetlistName, setActiveSetlistName] = useState<string>(() => {
     return localStorage.getItem('active-setlist-name') || 'Untitled Setlist';
   });
+
+  const [activeSetlistId, setActiveSetlistId] = useState<string | null>(() => {
+    return localStorage.getItem('active-setlist-id');
+  });
+
+  const [isCloudSetlist, setIsCloudSetlist] = useState<boolean>(() => {
+    return localStorage.getItem('is-cloud-setlist') === 'true';
+  });
   
   const [soundType, setSoundType] = useState<SoundType>('woodblock');
   const [volume, setVolume] = useState(0.5);
   const [useCountIn, setUseCountIn] = useState(false);
   const [isStageMode, setIsStageMode] = useState(false);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Auto-save effect
   useEffect(() => {
     localStorage.setItem('metronome-songs', JSON.stringify(songs));
     localStorage.setItem('active-song-id', activeSongId);
     localStorage.setItem('active-setlist-name', activeSetlistName);
-  }, [songs, activeSongId, activeSetlistName]);
+    localStorage.setItem('active-setlist-id', activeSetlistId || '');
+    localStorage.setItem('is-cloud-setlist', String(isCloudSetlist));
+
+    const syncSetlist = async () => {
+      if (!activeSetlistId) return;
+      
+      setIsSyncing(true);
+      if (isCloudSetlist && user) {
+        await supabase
+          .from('setlists')
+          .update({ songs: songs })
+          .eq('id', activeSetlistId);
+      } else {
+        const savedLocal = localStorage.getItem('metronome-presets');
+        const localSets = savedLocal ? JSON.parse(savedLocal) : [];
+        const updated = localSets.map((s: any) => 
+          s.id === activeSetlistId ? { ...s, songs: songs } : s
+        );
+        localStorage.setItem('metronome-presets', JSON.stringify(updated));
+      }
+      setTimeout(() => setIsSyncing(false), 1000);
+    };
+
+    const timeoutId = setTimeout(syncSetlist, 2000);
+    return () => clearTimeout(timeoutId);
+  }, [songs, activeSongId, activeSetlistName, activeSetlistId, isCloudSetlist, user]);
 
   const activeSong = useMemo(() => 
     songs.find(s => s.id === activeSongId) || songs[0], 
@@ -98,7 +147,7 @@ const Index = () => {
     useCountIn, 
     0, 
     activeSong?.shouldLoop || false,
-    !!editingSongId // Enable Step Mode when editing
+    !!editingSongId
   );
 
   const currentBlock = activeSong?.sequence[currentBlockIndex];
@@ -111,7 +160,6 @@ const Index = () => {
     } else {
       const totalBlocks = activeSong?.sequence.length || 0;
       if (totalBlocks > 1) {
-        // If we are not at the very beginning of the first block, advance to next
         const isAtStartOfFirstBlock = currentBlockIndex === 0 && currentBar === 0 && currentBeat === 0;
         if (!isAtStartOfFirstBlock) {
           const nextIdx = (currentBlockIndex + 1) % totalBlocks;
@@ -122,7 +170,6 @@ const Index = () => {
     }
   }, [isPlaying, togglePlay, currentBlockIndex, currentBar, currentBeat, activeSong, jumpToBlock]);
 
-  // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
@@ -160,16 +207,12 @@ const Index = () => {
     }
   };
 
-  const handleLoadSetlist = (newSequence: TempoBlock[], name: string) => {
-    const newSong: Song = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: 'Imported Setlist',
-      sequence: newSequence,
-      shouldLoop: false
-    };
-    setSongs([newSong]);
-    setActiveSongId(newSong.id);
+  const handleLoadSetlist = (newSongs: Song[], name: string, id: string, isCloud: boolean) => {
+    setSongs(newSongs);
+    setActiveSongId(newSongs[0]?.id || '');
     setActiveSetlistName(name);
+    setActiveSetlistId(id);
+    setIsCloudSetlist(isCloud);
     reset();
   };
 
@@ -217,14 +260,17 @@ const Index = () => {
               <div className="flex items-center gap-3">
                 <h1 className="text-4xl font-black tracking-tighter text-white leading-none">Fluid</h1>
                 <div className="h-6 w-[2px] bg-white/10 mx-1" />
-                <span className="text-xl font-black text-primary tracking-tight truncate max-w-[200px]">{activeSetlistName}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-black text-primary tracking-tight truncate max-w-[200px]">{activeSetlistName}</span>
+                  {isSyncing && <Cloud size={14} className="text-primary animate-pulse" />}
+                </div>
               </div>
               <p className="text-[10px] font-black uppercase tracking-[0.4em] mt-1 text-white/20">Studio Elite Metronome</p>
             </div>
           </div>
           
           <div className="flex flex-wrap items-center justify-center gap-5 p-2 bg-white/[0.02] rounded-[2rem] border border-white/5 backdrop-blur-xl relative z-50">
-            <PresetsManager currentSequence={activeSong?.sequence || []} onLoad={handleLoadSetlist} />
+            <PresetsManager currentSongs={songs} onLoad={handleLoadSetlist} />
             <div className="w-[1px] h-8 bg-white/5 mx-2" />
             <PracticeTimer onTimeUp={() => isPlaying && togglePlay()} isActive={isPlaying} />
             <div className="w-[1px] h-8 bg-white/5 mx-2" />
@@ -250,7 +296,6 @@ const Index = () => {
 
           <Card className="bg-white/[0.02] border-white/5 p-16 relative overflow-hidden backdrop-blur-[100px] rounded-[4rem]">
             <div className="flex flex-col items-center text-center space-y-10 mb-16">
-              {/* Setlist & Song Labels */}
               <div className="flex flex-col items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/60">{activeSetlistName}</span>
                 <h2 className="text-3xl font-black text-white tracking-tight uppercase">{activeSong?.name}</h2>
