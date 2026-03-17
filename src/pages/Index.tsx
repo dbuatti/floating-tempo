@@ -21,11 +21,13 @@ import {
   LayoutGrid,
   ListMusic,
   Repeat,
-  Cloud
+  Cloud,
+  SortAsc
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { showSuccess } from '@/utils/toast';
 
 const DEFAULT_SONGS: Song[] = [
   { 
@@ -184,6 +186,12 @@ const Index = () => {
     reset();
   };
 
+  const sortSongsAlphabetically = () => {
+    const sorted = [...songs].sort((a, b) => a.name.localeCompare(b.name));
+    setSongs(sorted);
+    showSuccess("Sorted A-Z");
+  };
+
   return (
     <div className="min-h-screen bg-[#08080a] text-foreground selection:bg-primary/30 transition-all duration-700 overflow-x-hidden analog-noise">
       <AnimatePresence>
@@ -282,7 +290,18 @@ const Index = () => {
                 <ListMusic className="text-primary" size={20} />
                 <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Song List</h2>
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{songs.length} Songs Total</span>
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={sortSongsAlphabetically}
+                  className="h-8 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-primary hover:bg-primary/10 gap-2"
+                >
+                  <SortAsc size={14} />
+                  Sort A-Z
+                </Button>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{songs.length} Songs Total</span>
+              </div>
             </div>
             
             <div className="space-y-4">
