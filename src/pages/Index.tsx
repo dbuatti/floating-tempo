@@ -129,7 +129,14 @@ const Index = () => {
 
   const handleLoadSetlist = (newSequence: TempoBlock[]) => {
     setSequence(newSequence);
-    // Note: PresetsManager handles the name update via its own logic or we can pass it back
+  };
+
+  const handleSelectSong = (index: number) => {
+    // We need to update the engine's current block index.
+    // Since the engine is a hook, we'd normally need a way to set its state.
+    // For now, we'll rely on the engine's internal logic or reset it.
+    // A better way would be to expose a setCurrentBlockIndex from the hook.
+    // Let's update the hook to support this.
   };
 
   return (
@@ -151,8 +158,8 @@ const Index = () => {
             onTogglePlay={togglePlay}
             onReset={reset}
             onClose={() => setIsStageMode(false)}
-            onPrevBlock={() => {}} // Logic handled by engine
-            onNextBlock={() => {}} // Logic handled by engine
+            onPrevBlock={() => {}} 
+            onNextBlock={() => {}} 
           />
         )}
       </AnimatePresence>
@@ -278,6 +285,14 @@ const Index = () => {
                   onDuplicate={(id) => {
                     const b = sequence.find(x => x.id === id);
                     if (b) setSequence([...sequence, { ...b, id: Math.random().toString(36).substr(2, 9) }]);
+                  }}
+                  onSelect={() => {
+                    // We'll need to update the engine to support jumping to a block
+                    // For now, we'll just reset and play if it's not the current one
+                    if (currentBlockIndex !== idx) {
+                      reset();
+                      // This is a bit hacky, but we'll update the engine next
+                    }
                   }}
                   onMoveUp={() => {
                     if (idx === 0) return;

@@ -24,7 +24,7 @@ const QuickAddSong = ({ onAdd, onAdvancedClick }: QuickAddSongProps) => {
     onAdd({
       name: name.trim(),
       bpm: parseInt(bpm) || 120,
-      bars: 4, // Default
+      bars: 4,
       timeSignature: 4,
       subdivision: 1
     });
@@ -42,10 +42,10 @@ const QuickAddSong = ({ onAdd, onAdvancedClick }: QuickAddSongProps) => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row items-center gap-4 p-6 bg-white/[0.02] rounded-[2.5rem] border border-white/5 backdrop-blur-xl shadow-2xl">
-      <div className="flex-1 flex items-center gap-4 w-full">
-        <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-          <Music2 size={18} className="text-primary" />
+    <div className="flex flex-col gap-3 p-5 bg-white/[0.02] rounded-[2rem] border border-white/5 backdrop-blur-xl shadow-2xl">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <Music2 size={14} className="text-primary" />
         </div>
         <Input
           ref={nameInputRef}
@@ -53,13 +53,13 @@ const QuickAddSong = ({ onAdd, onAdvancedClick }: QuickAddSongProps) => {
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="bg-white/5 border-none h-12 rounded-2xl text-sm font-bold focus-visible:ring-primary/30 placeholder:text-white/10"
+          className="bg-white/5 border-none h-10 rounded-xl text-xs font-bold focus-visible:ring-primary/30 placeholder:text-white/10"
         />
       </div>
 
-      <div className="flex items-center gap-4 w-full md:w-auto">
-        <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-          <Zap size={18} className="text-primary" />
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <Zap size={14} className="text-primary" />
         </div>
         <Input
           type="number"
@@ -67,15 +67,12 @@ const QuickAddSong = ({ onAdd, onAdvancedClick }: QuickAddSongProps) => {
           value={bpm}
           onChange={(e) => setBpm(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="bg-white/5 border-none h-12 w-full md:w-24 rounded-2xl text-sm font-mono font-black focus-visible:ring-primary/30 placeholder:text-white/10"
+          className="bg-white/5 border-none h-10 w-24 rounded-xl text-xs font-mono font-black focus-visible:ring-primary/30 placeholder:text-white/10"
         />
-      </div>
-
-      <div className="flex items-center gap-2 w-full md:w-auto">
         <Button 
           onClick={handleSubmit}
           disabled={!name.trim() || !bpm.trim()}
-          className="flex-1 md:flex-none h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20"
+          className="flex-1 h-10 rounded-xl bg-primary hover:bg-primary/90 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
         >
           Add Song
         </Button>
@@ -83,9 +80,9 @@ const QuickAddSong = ({ onAdd, onAdvancedClick }: QuickAddSongProps) => {
           variant="outline"
           size="icon"
           onClick={onAdvancedClick}
-          className="h-12 w-12 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white/40 hover:text-primary transition-all"
+          className="h-10 w-10 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white/40 hover:text-primary transition-all"
         >
-          <Plus size={20} />
+          <Plus size={16} />
         </Button>
       </div>
     </div>
