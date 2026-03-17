@@ -4,7 +4,8 @@ import React from 'react';
 import { Song, TempoBlock } from '@/hooks/use-metronome-engine';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Plus, Save, X, Music2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Plus, Save, X, Music2, Edit3 } from 'lucide-react';
 import TempoBlockItem from './TempoBlockItem';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -17,6 +18,10 @@ interface SongEditorModalProps {
 
 const SongEditorModal = ({ song, isOpen, onClose, onUpdate }: SongEditorModalProps) => {
   if (!song) return null;
+
+  const handleNameChange = (newName: string) => {
+    onUpdate({ ...song, name: newName });
+  };
 
   const updateBlock = (blockId: string, updates: Partial<TempoBlock>) => {
     const updatedSequence = song.sequence.map(b => 
@@ -68,18 +73,24 @@ const SongEditorModal = ({ song, isOpen, onClose, onUpdate }: SongEditorModalPro
       <DialogContent className="max-w-4xl bg-[#0c0c0e] border-white/10 rounded-[3rem] p-0 overflow-hidden">
         <div className="p-8 space-y-8">
           <DialogHeader className="flex flex-row items-center justify-between space-y-0">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <div className="flex items-center gap-4 flex-1 mr-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
                 <Music2 className="text-primary" size={24} />
               </div>
-              <div>
-                <DialogTitle className="text-2xl font-black text-white tracking-tight">
-                  Edit Timeline: {song.name}
-                </DialogTitle>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mt-1">Detailed Sequence Editor</p>
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2 group">
+                  <Input 
+                    value={song.name}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    className="bg-transparent border-none p-0 h-auto text-2xl font-black text-white tracking-tight focus-visible:ring-0 placeholder:text-white/10"
+                    placeholder="Enter Song Name..."
+                  />
+                  <Edit3 size={14} className="text-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">Detailed Sequence Editor</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-white/5">
+            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-white/5 shrink-0">
               <X size={20} />
             </Button>
           </DialogHeader>

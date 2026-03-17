@@ -23,7 +23,8 @@ export const useMetronomeEngine = (
   soundType: SoundType, 
   volume: number = 0.5,
   useCountIn: boolean = false,
-  autoIncrement: number = 0
+  autoIncrement: number = 0,
+  shouldLoop: boolean = false
 ) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCountingIn, setIsCountingIn] = useState(false);
@@ -50,7 +51,8 @@ export const useMetronomeEngine = (
     volume,
     useCountIn,
     autoIncrement,
-    bpmOffset: 0
+    bpmOffset: 0,
+    shouldLoop
   });
 
   useEffect(() => {
@@ -64,9 +66,10 @@ export const useMetronomeEngine = (
       volume,
       useCountIn,
       autoIncrement,
-      bpmOffset
+      bpmOffset,
+      shouldLoop
     };
-  }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, useCountIn, autoIncrement, bpmOffset]);
+  }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, useCountIn, autoIncrement, bpmOffset, shouldLoop]);
 
   // Animation loop for smooth subdivision progress
   useEffect(() => {
@@ -130,7 +133,7 @@ export const useMetronomeEngine = (
     if (!audioContext.current) return;
 
     while (nextNoteTime.current < audioContext.current.currentTime + scheduleAheadTime) {
-      const { currentBlockIndex, currentBeat, currentBar, sequence, isCountingIn, autoIncrement, bpmOffset } = stateRef.current;
+      const { currentBlockIndex, currentBeat, currentBar, sequence, isCountingIn, autoIncrement, bpmOffset, shouldLoop } = stateRef.current;
       const block = sequence[currentBlockIndex];
       
       if (!block) {
@@ -167,8 +170,15 @@ export const useMetronomeEngine = (
         nextBar = 0;
         nextBlockIdx++;
         if (nextBlockIdx >= sequence.length) {
-          nextBlockIdx = 0;
-          nextBpmOffset += autoIncrement;
+          if (shouldLoop) {
+            nextBlockIdx = 0;
+            nextBpmOffset += autoIncrement;
+          } else {
+            // Stop playing at the end of the sequence
+            setIsPlaying(false);
+            if (timerID.current) clearTimeout(timerID.current);
+            return;
+          }
         }
       }
 

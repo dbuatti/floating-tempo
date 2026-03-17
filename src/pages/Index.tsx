@@ -13,6 +13,8 @@ import SongEditorModal from '@/components/metronome/SongEditorModal.tsx';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   Music2, 
   Volume2, 
@@ -21,7 +23,8 @@ import {
   Pause, 
   Maximize2,
   LayoutGrid,
-  ListMusic
+  ListMusic,
+  Repeat
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,6 +62,7 @@ const Index = () => {
   const [soundType, setSoundType] = useState<SoundType>('woodblock');
   const [volume, setVolume] = useState(0.5);
   const [useCountIn, setUseCountIn] = useState(false);
+  const [shouldLoop, setShouldLoop] = useState(false);
   const [isStageMode, setIsStageMode] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
 
@@ -83,7 +87,7 @@ const Index = () => {
     togglePlay, 
     reset,
     jumpToBlock
-  } = useMetronomeEngine(activeSong?.sequence || [], soundType, volume, useCountIn);
+  } = useMetronomeEngine(activeSong?.sequence || [], soundType, volume, useCountIn, 0, shouldLoop);
 
   const currentBlock = activeSong?.sequence[currentBlockIndex];
   const displayBpm = (currentBlock?.bpm || 120) + bpmOffset;
@@ -323,6 +327,20 @@ const Index = () => {
                   <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Audio Settings</span>
                 </div>
                 <SoundSelector value={soundType} onChange={setSoundType} />
+                
+                <div className="flex items-center justify-between px-2 py-1">
+                  <div className="flex items-center gap-2">
+                    <Repeat size={14} className={cn(shouldLoop ? "text-primary" : "text-white/20")} />
+                    <Label htmlFor="loop-toggle" className="text-[10px] font-black uppercase tracking-widest text-white/40 cursor-pointer">Loop Sequence</Label>
+                  </div>
+                  <Switch 
+                    id="loop-toggle" 
+                    checked={shouldLoop} 
+                    onCheckedChange={setShouldLoop}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                </div>
+
                 <TapTempo onTempoChange={(bpm) => {
                   if (activeSong) {
                     const updatedSequence = [...activeSong.sequence];
