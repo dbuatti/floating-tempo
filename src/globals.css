@@ -53,8 +53,9 @@
   body {
     @apply bg-background text-foreground antialiased;
     background-image: 
-      radial-gradient(at 0% 0%, hsla(263, 70%, 50%, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(263, 70%, 50%, 0.05) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(263, 70%, 50%, 0.08) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(263, 70%, 50%, 0.08) 0px, transparent 50%),
+      radial-gradient(at 50% 50%, hsla(263, 70%, 50%, 0.03) 0px, transparent 80%);
   }
 }
 
@@ -67,7 +68,7 @@
   width: 300%;
   height: 300%;
   background-image: url("https://grainy-gradients.vercel.app/noise.svg");
-  opacity: 0.04;
+  opacity: 0.05;
   pointer-events: none;
   z-index: 50;
   animation: noise 8s steps(10) infinite;
@@ -87,7 +88,7 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -95,15 +96,23 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-white/10 rounded-full;
+  @apply bg-white/5 rounded-full border-2 border-transparent bg-clip-padding;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  @apply bg-white/20;
+  @apply bg-white/10;
 }
 
 /* Professional Fader Styling */
 .fader-thumb::-webkit-slider-thumb {
   @apply w-6 h-10 bg-white rounded-sm shadow-2xl cursor-pointer border-x-2 border-white/20;
   background: linear-gradient(90deg, #333 0%, #666 50%, #333 100%);
+}
+
+.glass-card {
+  @apply bg-white/[0.03] border-white/5 backdrop-blur-2xl shadow-2xl;
+}
+
+.glass-card-hover {
+  @apply hover:bg-white/[0.05] hover:border-white/10 transition-all duration-500;
 }

@@ -26,10 +26,11 @@ import {
   CloudOff,
   SortAsc,
   AlertCircle,
-  History
+  History,
+  Settings2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess } from '@/utils/toast';
 
@@ -242,71 +243,83 @@ const Index = () => {
         currentBlockIndex={activeSongId === editingSongId ? currentBlockIndex : -1}
       />
 
-      <div className="max-w-6xl mx-auto px-6 py-12 space-y-16 relative z-10">
-        <header className="flex flex-col md:flex-row items-center justify-between gap-10 relative z-50">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 rounded-[2rem] bg-primary flex items-center justify-center shadow-[0_20px_50px_rgba(168,85,247,0.3)]">
-              <Music2 className="text-white w-8 h-8" />
-            </div>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-4xl font-black tracking-tighter text-white leading-none">Fluid</h1>
-                <div className="h-6 w-[2px] bg-white/10 mx-1" />
+      <div className="max-w-7xl mx-auto px-8 py-16 space-y-20 relative z-10">
+        <header className="flex flex-col lg:flex-row items-center justify-between gap-12 relative z-50">
+          <div className="flex items-center gap-8">
+            <motion.div 
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              className="w-20 h-20 rounded-[2.5rem] bg-primary flex items-center justify-center shadow-[0_25px_60px_rgba(168,85,247,0.4)]"
+            >
+              <Music2 className="text-white w-10 h-10" />
+            </motion.div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-4">
+                <h1 className="text-5xl font-black tracking-tighter text-white leading-none">Fluid</h1>
+                <div className="h-8 w-[2px] bg-white/10 mx-1" />
                 <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl font-black text-primary tracking-tight truncate max-w-[200px]">{activeSetlistName}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl font-black text-primary tracking-tight truncate max-w-[250px]">{activeSetlistName}</span>
                     {isCloudSetlist ? (
-                      <div className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20">
-                        <Cloud size={10} className={cn("text-primary", isSyncing && "animate-pulse")} />
-                        <span className="text-[8px] font-black uppercase tracking-widest text-primary">Synced</span>
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
+                        <Cloud size={12} className={cn("text-primary", isSyncing && "animate-pulse")} />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-primary">Synced</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 px-2 py-0.5 bg-white/5 rounded-full border border-white/10">
-                        <CloudOff size={10} className="text-white/20" />
-                        <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Local</span>
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                        <CloudOff size={12} className="text-white/20" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Local</span>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] mt-1 text-white/20">Studio Elite Metronome</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/20">Studio Elite Metronome • v2.0</p>
             </div>
           </div>
           
-          <div className="flex flex-wrap items-center justify-center gap-5 p-2 bg-white/[0.02] rounded-[2rem] border border-white/5 backdrop-blur-xl relative z-50">
+          <div className="flex flex-wrap items-center justify-center gap-6 p-3 bg-white/[0.02] rounded-[2.5rem] border border-white/5 backdrop-blur-3xl relative z-50 shadow-2xl">
             <PresetsManager currentSongs={songs} onLoad={handleLoadSetlist} />
-            <div className="w-[1px] h-8 bg-white/5 mx-2" />
+            <div className="w-[1px] h-10 bg-white/5 mx-1" />
             <PracticeTimer onTimeUp={() => isPlaying && togglePlay()} isActive={isPlaying} />
-            <div className="w-[1px] h-8 bg-white/5 mx-2" />
+            <div className="w-[1px] h-10 bg-white/5 mx-1" />
             <AuthButton />
           </div>
         </header>
 
         {user && !isCloudSetlist && (
-          <div className="mx-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="text-amber-500" size={18} />
-              <p className="text-xs font-bold text-amber-200/80">This setlist is currently <span className="text-amber-500">Local Only</span>. Save it to your library to sync it to the cloud.</p>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-8 p-5 bg-amber-500/10 border border-amber-500/20 rounded-3xl flex items-center justify-between gap-6 shadow-xl"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 flex items-center justify-center">
+                <AlertCircle className="text-amber-500" size={20} />
+              </div>
+              <p className="text-sm font-bold text-amber-200/80">This setlist is currently <span className="text-amber-500">Local Only</span>. Save it to your library to sync it to the cloud.</p>
             </div>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={() => document.querySelector<HTMLButtonElement>('[data-presets-trigger]')?.click()}
-              className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:bg-amber-500/10"
+              className="text-[11px] font-black uppercase tracking-widest text-amber-500 hover:bg-amber-500/10 h-11 px-6 rounded-2xl"
             >
               Save to Library
             </Button>
-          </div>
+          </motion.div>
         )}
 
-        <section className="space-y-10 relative z-10">
-          <div className="flex items-center justify-between px-6">
-            <div className="flex items-center gap-4">
-              <div className="w-3 h-6 rounded-full bg-primary shadow-2xl" />
-              <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Performance Focus</h2>
+        <section className="space-y-12 relative z-10">
+          <div className="flex items-center justify-between px-8">
+            <div className="flex items-center gap-5">
+              <div className="w-4 h-8 rounded-full bg-primary shadow-[0_0_30px_rgba(168,85,247,0.5)]" />
+              <h2 className="text-xl font-black uppercase tracking-[0.5em] text-white/40">Performance Focus</h2>
             </div>
-            <Button onClick={() => setIsStageMode(true)} className="rounded-2xl bg-primary hover:bg-primary/90 h-12 px-8 gap-3 text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20">
-              <Maximize2 size={18} />
+            <Button 
+              onClick={() => setIsStageMode(true)} 
+              className="rounded-[2rem] bg-primary hover:bg-primary/90 h-14 px-10 gap-4 text-sm font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(168,85,247,0.3)] transition-all hover:scale-105 active:scale-95"
+            >
+              <Maximize2 size={20} />
               Enter Stage Mode
             </Button>
           </div>
@@ -329,28 +342,30 @@ const Index = () => {
           />
         </section>
 
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 relative z-10">
-          <div className="lg:col-span-8 space-y-10">
-            <div className="flex items-center justify-between px-6">
-              <div className="flex items-center gap-3">
-                <ListMusic className="text-primary" size={20} />
-                <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Song List</h2>
-              </div>
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-16 relative z-10">
+          <div className="lg:col-span-8 space-y-12">
+            <div className="flex items-center justify-between px-8">
               <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <ListMusic className="text-primary" size={22} />
+                </div>
+                <h2 className="text-xl font-black uppercase tracking-[0.5em] text-white/40">Song List</h2>
+              </div>
+              <div className="flex items-center gap-6">
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={sortSongsAlphabetically}
-                  className="h-8 px-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-primary hover:bg-primary/10 gap-2"
+                  className="h-10 px-5 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white/20 hover:text-primary hover:bg-primary/10 gap-3 transition-all"
                 >
-                  <SortAsc size={14} />
+                  <SortAsc size={16} />
                   Sort A-Z
                 </Button>
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{songs.length} Songs Total</span>
+                <span className="text-[11px] font-black uppercase tracking-widest text-white/10 bg-white/5 px-4 py-2 rounded-full">{songs.length} Songs Total</span>
               </div>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-6">
               {songs.map((song) => (
                 <SongListItem 
                   key={song.id}
@@ -374,23 +389,33 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="lg:col-span-4 space-y-10">
-            <div className="flex items-center gap-3 px-6">
-              <LayoutGrid className="text-primary" size={20} />
-              <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Quick Tools</h2>
+          <div className="lg:col-span-4 space-y-12">
+            <div className="flex items-center gap-4 px-8">
+              <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <LayoutGrid className="text-primary" size={22} />
+              </div>
+              <h2 className="text-xl font-black uppercase tracking-[0.5em] text-white/40">Quick Tools</h2>
             </div>
-            <div className="space-y-6">
+            <div className="space-y-8">
               <QuickAddSong onAdd={addSong} />
               
-              <div className="p-6 bg-white/[0.02] rounded-[2.5rem] border border-white/5 space-y-6">
-                <SoundSelector value={soundType} onChange={setSoundType} />
-                <div className="flex items-center justify-between px-2 py-1">
-                  <div className="flex items-center gap-2">
-                    <Repeat size={14} className={cn(activeSong?.shouldLoop ? "text-primary" : "text-white/20")} />
-                    <Label htmlFor="loop-toggle" className="text-[10px] font-black uppercase tracking-widest text-white/40 cursor-pointer">Loop Song</Label>
+              <div className="p-8 bg-white/[0.02] rounded-[3rem] border border-white/5 space-y-8 shadow-2xl backdrop-blur-xl">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 px-2">
+                    <Settings2 size={14} className="text-primary/40" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Audio Engine</span>
+                  </div>
+                  <SoundSelector value={soundType} onChange={setSoundType} />
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-3 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <Repeat size={16} className={cn(activeSong?.shouldLoop ? "text-primary" : "text-white/20")} />
+                    <Label htmlFor="loop-toggle" className="text-[11px] font-black uppercase tracking-widest text-white/40 cursor-pointer">Loop Song</Label>
                   </div>
                   <Switch id="loop-toggle" checked={activeSong?.shouldLoop || false} onCheckedChange={(checked) => activeSong && updateSong({ ...activeSong, shouldLoop: checked })} className="data-[state=checked]:bg-primary" />
                 </div>
+
                 <TapTempo onTempoChange={(bpm) => {
                   if (activeSong) {
                     const updatedSequence = [...activeSong.sequence];
@@ -403,7 +428,7 @@ const Index = () => {
               </div>
 
               {user && (
-                <div className="p-6 bg-white/[0.02] rounded-[2.5rem] border border-white/5 space-y-4">
+                <div className="p-8 bg-white/[0.02] rounded-[3rem] border border-white/5 space-y-6 shadow-2xl backdrop-blur-xl">
                   <SavedInputs onLoad={handleLoadSequence} />
                 </div>
               )}
