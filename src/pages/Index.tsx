@@ -97,7 +97,8 @@ const Index = () => {
     volume, 
     useCountIn, 
     0, 
-    activeSong?.shouldLoop || false
+    activeSong?.shouldLoop || false,
+    !!editingSongId // Enable Step Mode when editing
   );
 
   const currentBlock = activeSong?.sequence[currentBlockIndex];
@@ -185,6 +186,7 @@ const Index = () => {
         isOpen={!!editingSongId}
         onClose={() => setEditingSongId(null)}
         onUpdate={updateSong}
+        currentBlockIndex={activeSongId === editingSongId ? currentBlockIndex : -1}
       />
 
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-16 relative z-10">
@@ -318,7 +320,10 @@ const Index = () => {
                     }
                   }}
                   onTogglePlay={togglePlay}
-                  onEdit={() => setEditingSongId(song.id)}
+                  onEdit={() => {
+                    setActiveSongId(song.id);
+                    setEditingSongId(song.id);
+                  }}
                   onDelete={() => deleteSong(song.id)}
                 />
               ))}

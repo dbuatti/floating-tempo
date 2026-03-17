@@ -16,9 +16,10 @@ interface SongEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdate: (updatedSong: Song) => void;
+  currentBlockIndex: number;
 }
 
-const SongEditorModal = ({ song, isOpen, onClose, onUpdate }: SongEditorModalProps) => {
+const SongEditorModal = ({ song, isOpen, onClose, onUpdate, currentBlockIndex }: SongEditorModalProps) => {
   const [localName, setLocalName] = useState('');
 
   // Sync local name when song changes or modal opens
@@ -129,7 +130,7 @@ const SongEditorModal = ({ song, isOpen, onClose, onUpdate }: SongEditorModalPro
                 <TempoBlockItem 
                   key={block.id}
                   block={block}
-                  isActive={false}
+                  isActive={idx === currentBlockIndex}
                   onUpdate={updateBlock}
                   onDelete={deleteBlock}
                   onDuplicate={duplicateBlock}

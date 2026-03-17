@@ -27,7 +27,8 @@ export const useMetronomeEngine = (
   volume: number = 0.5,
   useCountIn: boolean = false,
   autoIncrement: number = 0,
-  shouldLoop: boolean = false
+  shouldLoop: boolean = false,
+  stopAtEndOfBlock: boolean = false
 ) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCountingIn, setIsCountingIn] = useState(false);
@@ -55,7 +56,8 @@ export const useMetronomeEngine = (
     useCountIn,
     autoIncrement,
     bpmOffset: 0,
-    shouldLoop
+    shouldLoop,
+    stopAtEndOfBlock
   });
 
   useEffect(() => {
@@ -70,9 +72,10 @@ export const useMetronomeEngine = (
       useCountIn,
       autoIncrement,
       bpmOffset,
-      shouldLoop
+      shouldLoop,
+      stopAtEndOfBlock
     };
-  }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, useCountIn, autoIncrement, bpmOffset, shouldLoop]);
+  }, [isPlaying, isCountingIn, currentBlockIndex, currentBeat, currentBar, sequence, volume, useCountIn, autoIncrement, bpmOffset, shouldLoop, stopAtEndOfBlock]);
 
   useEffect(() => {
     let animationFrame: number;
@@ -146,7 +149,18 @@ export const useMetronomeEngine = (
     if (!audioContext.current) return;
 
     while (nextNoteTime.current < audioContext.current.currentTime + scheduleAheadTime) {
-      const { currentBlockIndex, currentBeat, currentBar, sequence, isCountingIn, autoIncrement, bpmOffset, shouldLoop } = stateRef.current;
+      const { 
+        currentBlockIndex, 
+        currentBeat, 
+        currentBar, 
+        sequence, 
+        isCountingIn, 
+        autoIncrement, 
+        bpmOffset, 
+        shouldLoop,
+        stopAtEndOfBlock 
+      } = stateRef.current;
+      
       const block = sequence[currentBlockIndex];
       
       if (!block) {
@@ -165,7 +179,6 @@ export const useMetronomeEngine = (
         if (mainBeat === 0) {
           type = 'accent';
         } else if (block.timeSignature === 6 && mainBeat === 3) {
-          // Secondary accent for 6/8 on beat 4
           type = 'secondary';
         } else {
           type = 'normal';
@@ -195,6 +208,20 @@ export const useMetronomeEngine = (
           nextIsCountingIn = false;
         }
       } else if (nextBar >= block.bars) {
+        // Handle Step Mode (Stop at end of block)
+        if (stopAtEndOfBlock && sequence.length > 1) {
+          setIsPlaying(false);
+          const advancedIdx = (currentBlockIndex + 1) % sequence.length;
+          setCurrentBlockIndex(advancedIdx);
+          setCurrentBar(0);
+          setCurrentBeat(0);
+          stateRef.current.currentBlockIndex = advancedIdx;
+          stateRef.current.currentBar = 0;
+          stateRef.current.currentBeat = 0;
+          if (timerID.current) clearTimeout(timerID.current);
+          return;
+        }
+
         nextBar = 0;
         nextBlockIdx++;
         if (nextBlockIdx >= sequence.length) {
