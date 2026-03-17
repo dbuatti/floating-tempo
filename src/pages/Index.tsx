@@ -64,7 +64,7 @@ const Index = () => {
   const [volume, setVolume] = useState(0.5);
   const [useCountIn, setUseCountIn] = useState(false);
   const [isStageMode, setIsStageMode] = useState(false);
-  const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [editingSongId, setEditingSongId] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem('metronome-songs', JSON.stringify(songs));
@@ -75,6 +75,10 @@ const Index = () => {
   const activeSong = useMemo(() => 
     songs.find(s => s.id === activeSongId) || songs[0], 
   [songs, activeSongId]);
+
+  const editingSong = useMemo(() => 
+    songs.find(s => s.id === editingSongId) || null,
+  [songs, editingSongId]);
 
   const { 
     isPlaying, 
@@ -178,8 +182,8 @@ const Index = () => {
 
       <SongEditorModal 
         song={editingSong}
-        isOpen={!!editingSong}
-        onClose={() => setEditingSong(null)}
+        isOpen={!!editingSongId}
+        onClose={() => setEditingSongId(null)}
         onUpdate={updateSong}
       />
 
@@ -314,7 +318,7 @@ const Index = () => {
                     }
                   }}
                   onTogglePlay={togglePlay}
-                  onEdit={() => setEditingSong(song)}
+                  onEdit={() => setEditingSongId(song.id)}
                   onDelete={() => deleteSong(song.id)}
                 />
               ))}
