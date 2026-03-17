@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useMetronomeEngine, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
-import TempoBlockItem from '@/components/metronome/TempoBlockItem';
-import VisualFeedback from '@/components/metronome/VisualFeedback';
-import NaturalLanguageParser from '@/components/metronome/NaturalLanguageParser';
-import TapTempo from '@/components/metronome/TapTempo';
-import PresetsManager from '@/components/metronome/PresetsManager';
-import PracticeTimer from '@/components/metronome/PracticeTimer';
-import SoundSelector from '@/components/metronome/SoundSelector';
-import AuthButton from '@/components/auth/AuthButton';
-import SavedInputs from '@/components/metronome/SavedInputs';
-import QuickAddSong from '@/components/metronome/QuickAddSong';
+import TempoBlockItem from '@/components/metronome/TempoBlockItem.tsx';
+import VisualFeedback from '@/components/metronome/VisualFeedback.tsx';
+import NaturalLanguageParser from '@/components/metronome/NaturalLanguageParser.tsx';
+import TapTempo from '@/components/metronome/TapTempo.tsx';
+import PresetsManager from '@/components/metronome/PresetsManager.tsx';
+import PracticeTimer from '@/components/metronome/PracticeTimer.tsx';
+import SoundSelector from '@/components/metronome/SoundSelector.tsx';
+import AuthButton from '@/components/auth/AuthButton.tsx';
+import SavedInputs from '@/components/metronome/SavedInputs.tsx';
+import QuickAddSong from '@/components/metronome/QuickAddSong.tsx';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -32,9 +32,7 @@ import {
   Keyboard,
   Maximize2,
   Minimize2,
-  Settings2,
-  LayoutGrid,
-  ListMusic
+  Settings2
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';

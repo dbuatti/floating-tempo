@@ -3,7 +3,7 @@ import { TempoBlock } from '@/hooks/use-metronome-engine';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Trash2, ChevronUp, ChevronDown, Music, Copy, Volume2, VolumeX, Edit3 } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown, Music, Copy, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
