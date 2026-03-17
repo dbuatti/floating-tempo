@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { TempoBlock } from '@/hooks/use-metronome-engine';
-import MetronomeVisuals from './MetronomeVisuals';
+import MetronomeVisuals from './MetronomeVisuals.tsx';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, RotateCcw, Minimize2, ChevronLeft, ChevronRight, Music2, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

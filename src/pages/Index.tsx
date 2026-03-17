@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useMetronomeEngine, Song, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
-import MetronomeVisuals from '@/components/metronome/MetronomeVisuals';
+import MetronomeVisuals from '@/components/metronome/MetronomeVisuals.tsx';
 import TapTempo from '@/components/metronome/TapTempo';
 import PresetsManager from '@/components/metronome/PresetsManager';
 import StageView from '@/components/metronome/StageView';
