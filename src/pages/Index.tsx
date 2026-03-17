@@ -4,7 +4,7 @@ import TempoBlockItem from '@/components/metronome/TempoBlockItem.tsx';
 import VisualFeedback from '@/components/metronome/VisualFeedback.tsx';
 import NaturalLanguageParser from '@/components/metronome/NaturalLanguageParser.tsx';
 import TapTempo from '@/components/metronome/TapTempo.tsx';
-import SetlistManager from '@/components/metronome/SetlistManager.tsx';
+import PresetsManager from '@/components/metronome/PresetsManager.tsx';
 import StageView from '@/components/metronome/StageView.tsx';
 import PracticeTimer from '@/components/metronome/PracticeTimer.tsx';
 import SoundSelector from '@/components/metronome/SoundSelector.tsx';
@@ -33,7 +33,8 @@ import {
   Keyboard,
   Maximize2,
   Settings2,
-  LayoutGrid
+  LayoutGrid,
+  FolderOpen
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -126,10 +127,9 @@ const Index = () => {
     setSequence(sequence.map(b => b.id === id ? { ...b, ...updates } : b));
   };
 
-  const handleLoadSetlist = (newSequence: TempoBlock[], name: string) => {
+  const handleLoadSetlist = (newSequence: TempoBlock[]) => {
     setSequence(newSequence);
-    setActiveSetlistName(name);
-    showSuccess(`Loaded "${name}"`);
+    // Note: PresetsManager handles the name update via its own logic or we can pass it back
   };
 
   return (
@@ -175,20 +175,13 @@ const Index = () => {
           </div>
           
           <div className="flex flex-wrap items-center justify-center gap-5 p-2 bg-white/[0.02] rounded-[2rem] border border-white/5 backdrop-blur-xl">
+            <PresetsManager currentSequence={sequence} onLoad={handleLoadSetlist} />
+            <div className="w-[1px] h-8 bg-white/5 mx-2" />
             <PracticeTimer onTimeUp={() => isPlaying && togglePlay()} isActive={isPlaying} />
             <div className="w-[1px] h-8 bg-white/5 mx-2" />
             <AuthButton />
           </div>
         </header>
-
-        {/* Setlist Dashboard */}
-        <section className="space-y-10">
-          <SetlistManager 
-            currentSequence={sequence} 
-            onLoad={handleLoadSetlist} 
-            activeSetlistName={activeSetlistName}
-          />
-        </section>
 
         {/* Active Setlist Focus */}
         <section className="space-y-10">
@@ -274,7 +267,7 @@ const Index = () => {
               </Button>
             </div>
             
-            <div className="space-y-6 max-h-[600px] overflow-y-auto pr-6 custom-scrollbar">
+            <div className="space-y-6 max-h-[800px] overflow-y-auto pr-6 custom-scrollbar">
               {sequence.map((block, idx) => (
                 <TempoBlockItem 
                   key={block.id}
@@ -285,6 +278,18 @@ const Index = () => {
                   onDuplicate={(id) => {
                     const b = sequence.find(x => x.id === id);
                     if (b) setSequence([...sequence, { ...b, id: Math.random().toString(36).substr(2, 9) }]);
+                  }}
+                  onMoveUp={() => {
+                    if (idx === 0) return;
+                    const newSeq = [...sequence];
+                    [newSeq[idx], newSeq[idx-1]] = [newSeq[idx-1], newSeq[idx]];
+                    setSequence(newSeq);
+                  }}
+                  onMoveDown={() => {
+                    if (idx === sequence.length - 1) return;
+                    const newSeq = [...sequence];
+                    [newSeq[idx], newSeq[idx+1]] = [newSeq[idx+1], newSeq[idx]];
+                    setSequence(newSeq);
                   }}
                   isFirst={idx === 0}
                   isLast={idx === sequence.length - 1}
