@@ -14,6 +14,7 @@ export interface Song {
   id: string;
   name: string;
   sequence: TempoBlock[];
+  shouldLoop?: boolean;
 }
 
 export type SoundType = 'woodblock' | 'digital' | 'cowbell';

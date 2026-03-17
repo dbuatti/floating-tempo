@@ -1,11 +1,13 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Song, TempoBlock } from '@/hooks/use-metronome-engine';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Save, X, Music2, Edit3 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Plus, Save, X, Music2, Edit3, Repeat } from 'lucide-react';
 import TempoBlockItem from './TempoBlockItem';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -17,10 +19,24 @@ interface SongEditorModalProps {
 }
 
 const SongEditorModal = ({ song, isOpen, onClose, onUpdate }: SongEditorModalProps) => {
+  const [localName, setLocalName] = useState('');
+
+  // Sync local name when song changes or modal opens
+  useEffect(() => {
+    if (song) {
+      setLocalName(song.name);
+    }
+  }, [song?.id, isOpen]);
+
   if (!song) return null;
 
   const handleNameChange = (newName: string) => {
+    setLocalName(newName);
     onUpdate({ ...song, name: newName });
+  };
+
+  const handleLoopToggle = (checked: boolean) => {
+    onUpdate({ ...song, shouldLoop: checked });
   };
 
   const updateBlock = (blockId: string, updates: Partial<TempoBlock>) => {
@@ -78,21 +94,33 @@ const SongEditorModal = ({ song, isOpen, onClose, onUpdate }: SongEditorModalPro
                 <Music2 className="text-primary" size={24} />
               </div>
               <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2 group">
+                <div className="flex items-center gap-2 group relative">
                   <Input 
-                    value={song.name}
+                    value={localName}
                     onChange={(e) => handleNameChange(e.target.value)}
-                    className="bg-transparent border-none p-0 h-auto text-2xl font-black text-white tracking-tight focus-visible:ring-0 placeholder:text-white/10"
+                    className="bg-white/5 border-none px-4 h-12 text-2xl font-black text-white tracking-tight focus-visible:ring-primary/30 rounded-xl placeholder:text-white/10 transition-all"
                     placeholder="Enter Song Name..."
                   />
-                  <Edit3 size={14} className="text-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Edit3 size={14} className="absolute right-4 text-white/20 pointer-events-none" />
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">Detailed Sequence Editor</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 ml-1">Detailed Sequence Editor</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-white/5 shrink-0">
-              <X size={20} />
-            </Button>
+            <div className="flex items-center gap-6 mr-4">
+              <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
+                <Repeat size={14} className={song.shouldLoop ? "text-primary" : "text-white/20"} />
+                <Label htmlFor="modal-loop-toggle" className="text-[10px] font-black uppercase tracking-widest text-white/40 cursor-pointer">Loop Song</Label>
+                <Switch 
+                  id="modal-loop-toggle" 
+                  checked={song.shouldLoop || false} 
+                  onCheckedChange={handleLoopToggle}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+              <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-white/5 shrink-0">
+                <X size={20} />
+              </Button>
+            </div>
           </DialogHeader>
 
           <ScrollArea className="h-[500px] pr-4">

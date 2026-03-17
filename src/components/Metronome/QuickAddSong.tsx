@@ -33,7 +33,6 @@ const QuickAddSong = ({ onAdd }: QuickAddSongProps) => {
   }, []);
 
   const parseAdvancedText = (input: string): TempoBlock[] => {
-    // Split by common separators like "then", "and", or commas to handle multiple sections
     const parts = input.split(/(?:then|and|,|\+)/i);
     const blocks: TempoBlock[] = [];
     
@@ -41,24 +40,42 @@ const QuickAddSong = ({ onAdd }: QuickAddSongProps) => {
       const cleanPart = part.trim();
       if (!cleanPart) return;
       
-      // Extract all numbers from this part
-      // We expect the first number to be bars and the second to be BPM
-      const numbers = cleanPart.match(/\d+/g);
+      // 1. Extract Bars (e.g., "16 bars")
+      const barsMatch = cleanPart.match(/(\d+)\s*bars?/i);
+      const bars = barsMatch ? parseInt(barsMatch[1], 10) : 4; // Default to 4
       
-      if (numbers && numbers.length >= 2) {
-        const bars = parseInt(numbers[0], 10);
-        const bpmVal = parseInt(numbers[1], 10);
-        
-        if (!isNaN(bars) && !isNaN(bpmVal)) {
-          blocks.push({
-            id: Math.random().toString(36).substr(2, 9),
-            name: `Section ${blocks.length + 1}`,
-            bars: bars,
-            bpm: bpmVal,
-            timeSignature: 4,
-            subdivision: 1
-          });
+      // 2. Extract Time Signature (e.g., "6/8", "4/4")
+      const tsMatch = cleanPart.match(/(\d+)\/(\d+)/);
+      let timeSignature = tsMatch ? parseInt(tsMatch[1], 10) : 4;
+      
+      // 3. Extract BPM (e.g., "@ 114", "= 56", "120bpm")
+      const bpmMatch = cleanPart.match(/(?:@|=)\s*(\d+)/) || cleanPart.match(/(\d+)\s*bpm/i);
+      let bpmVal = bpmMatch ? parseInt(bpmMatch[1], 10) : 0;
+      
+      // Fallback: if no explicit BPM marker, look for any number that isn't the bars or TS
+      if (!bpmVal) {
+        const allNumbers = cleanPart.match(/\d+/g);
+        if (allNumbers) {
+          const usedNumbers = [];
+          if (barsMatch) usedNumbers.push(barsMatch[1]);
+          if (tsMatch) usedNumbers.push(tsMatch[1], tsMatch[2]);
+          
+          const remaining = allNumbers.filter(n => !usedNumbers.includes(n));
+          if (remaining.length > 0) {
+            bpmVal = parseInt(remaining[0], 10);
+          }
         }
+      }
+
+      if (bpmVal > 0) {
+        blocks.push({
+          id: Math.random().toString(36).substr(2, 9),
+          name: `Section ${blocks.length + 1}`,
+          bars: bars,
+          bpm: bpmVal,
+          timeSignature: [2, 3, 4, 5, 6].includes(timeSignature) ? timeSignature : 4,
+          subdivision: 1
+        });
       }
     });
     

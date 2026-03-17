@@ -33,7 +33,8 @@ const DEFAULT_SONGS: Song[] = [
   { 
     id: '1', 
     name: 'Warmup', 
-    sequence: [{ id: 'b1', name: 'Main', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 }] 
+    sequence: [{ id: 'b1', name: 'Main', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 }],
+    shouldLoop: false
   },
 ];
 
@@ -62,7 +63,6 @@ const Index = () => {
   const [soundType, setSoundType] = useState<SoundType>('woodblock');
   const [volume, setVolume] = useState(0.5);
   const [useCountIn, setUseCountIn] = useState(false);
-  const [shouldLoop, setShouldLoop] = useState(false);
   const [isStageMode, setIsStageMode] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
 
@@ -87,7 +87,14 @@ const Index = () => {
     togglePlay, 
     reset,
     jumpToBlock
-  } = useMetronomeEngine(activeSong?.sequence || [], soundType, volume, useCountIn, 0, shouldLoop);
+  } = useMetronomeEngine(
+    activeSong?.sequence || [], 
+    soundType, 
+    volume, 
+    useCountIn, 
+    0, 
+    activeSong?.shouldLoop || false
+  );
 
   const currentBlock = activeSong?.sequence[currentBlockIndex];
   const displayBpm = (currentBlock?.bpm || 120) + bpmOffset;
@@ -135,7 +142,8 @@ const Index = () => {
     const newSong: Song = {
       id: Math.random().toString(36).substr(2, 9),
       name: 'Imported Setlist',
-      sequence: newSequence
+      sequence: newSequence,
+      shouldLoop: false
     };
     setSongs([newSong]);
     setActiveSongId(newSong.id);
@@ -330,13 +338,13 @@ const Index = () => {
                 
                 <div className="flex items-center justify-between px-2 py-1">
                   <div className="flex items-center gap-2">
-                    <Repeat size={14} className={cn(shouldLoop ? "text-primary" : "text-white/20")} />
-                    <Label htmlFor="loop-toggle" className="text-[10px] font-black uppercase tracking-widest text-white/40 cursor-pointer">Loop Sequence</Label>
+                    <Repeat size={14} className={cn(activeSong?.shouldLoop ? "text-primary" : "text-white/20")} />
+                    <Label htmlFor="loop-toggle" className="text-[10px] font-black uppercase tracking-widest text-white/40 cursor-pointer">Loop Song</Label>
                   </div>
                   <Switch 
                     id="loop-toggle" 
-                    checked={shouldLoop} 
-                    onCheckedChange={setShouldLoop}
+                    checked={activeSong?.shouldLoop || false} 
+                    onCheckedChange={(checked) => activeSong && updateSong({ ...activeSong, shouldLoop: checked })}
                     className="data-[state=checked]:bg-primary"
                   />
                 </div>
