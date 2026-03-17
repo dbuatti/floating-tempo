@@ -12,6 +12,7 @@ import QuickAddSong from '@/components/metronome/QuickAddSong';
 import SongListItem from '@/components/metronome/SongListItem';
 import SongEditorModal from '@/components/metronome/SongEditorModal';
 import StageView from '@/components/metronome/StageView';
+import SavedInputs from '@/components/metronome/SavedInputs';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -24,8 +25,8 @@ import {
   Cloud,
   CloudOff,
   SortAsc,
-  ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimatePresence } from 'framer-motion';
@@ -193,6 +194,17 @@ const Index = () => {
     const sorted = [...songs].sort((a, b) => a.name.localeCompare(b.name));
     setSongs(sorted);
     showSuccess("Sorted A-Z");
+  };
+
+  const handleLoadSequence = (sequence: TempoBlock[]) => {
+    const newSong: Song = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: `Imported Sequence ${songs.length + 1}`,
+      sequence,
+      shouldLoop: false
+    };
+    addSong(newSong);
+    showSuccess("Sequence loaded as new song");
   };
 
   return (
@@ -385,6 +397,12 @@ const Index = () => {
                   }
                 }} />
               </div>
+
+              {user && (
+                <div className="p-6 bg-white/[0.02] rounded-[2.5rem] border border-white/5 space-y-4">
+                  <SavedInputs onLoad={handleLoadSequence} />
+                </div>
+              )}
             </div>
           </div>
         </section>
