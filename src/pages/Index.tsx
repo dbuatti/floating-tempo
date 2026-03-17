@@ -22,7 +22,10 @@ import {
   ListMusic,
   Repeat,
   Cloud,
-  SortAsc
+  CloudOff,
+  SortAsc,
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimatePresence } from 'framer-motion';
@@ -235,10 +238,20 @@ const Index = () => {
               <div className="flex items-center gap-3">
                 <h1 className="text-4xl font-black tracking-tighter text-white leading-none">Fluid</h1>
                 <div className="h-6 w-[2px] bg-white/10 mx-1" />
-                <div className="flex items-center gap-2 min-w-[100px]">
-                  <span className="text-xl font-black text-primary tracking-tight truncate max-w-[200px]">{activeSetlistName}</span>
-                  <div className="w-4 h-4 flex items-center justify-center">
-                    {isSyncing && <Cloud size={14} className="text-primary animate-pulse shrink-0" />}
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-black text-primary tracking-tight truncate max-w-[200px]">{activeSetlistName}</span>
+                    {isCloudSetlist ? (
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20">
+                        <Cloud size={10} className={cn("text-primary", isSyncing && "animate-pulse")} />
+                        <span className="text-[8px] font-black uppercase tracking-widest text-primary">Synced</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-white/5 rounded-full border border-white/10">
+                        <CloudOff size={10} className="text-white/20" />
+                        <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Local</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -254,6 +267,23 @@ const Index = () => {
             <AuthButton />
           </div>
         </header>
+
+        {user && !isCloudSetlist && (
+          <div className="mx-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="text-amber-500" size={18} />
+              <p className="text-xs font-bold text-amber-200/80">This setlist is currently <span className="text-amber-500">Local Only</span>. Save it to your library to sync it to the cloud.</p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => document.querySelector<HTMLButtonElement>('[data-presets-trigger]')?.click()}
+              className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:bg-amber-500/10"
+            >
+              Save to Library
+            </Button>
+          </div>
+        )}
 
         <section className="space-y-10 relative z-10">
           <div className="flex items-center justify-between px-6">
