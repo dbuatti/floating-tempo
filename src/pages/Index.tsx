@@ -285,7 +285,7 @@ const Index = () => {
               <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{songs.length} Songs Total</span>
             </div>
             
-            <div className="space-y-4 max-h-[800px] overflow-y-auto pr-6 custom-scrollbar">
+            <div className="space-y-4">
               {songs.map((song) => (
                 <SongListItem 
                   key={song.id}
