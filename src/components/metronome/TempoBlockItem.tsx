@@ -92,9 +92,9 @@ const TempoBlockItem = ({
         </div>
         
         {/* Main Inputs Grid */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-[2.5fr_1fr_1fr_1.2fr_1.2fr] gap-4 relative z-10" onClick={e => e.stopPropagation()}>
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-[2fr_1.2fr_1.2fr_1.2fr_1.2fr] gap-4 relative z-10" onClick={e => e.stopPropagation()}>
           <div className="space-y-1.5">
-            <label className="text-[9px] uppercase font-black text-white/20 tracking-widest ml-1">Song Name</label>
+            <label className="text-[9px] uppercase font-black text-white/20 tracking-widest ml-1">Section Name</label>
             <Input 
               value={block.name || ''} 
               onChange={(e) => onUpdate(block.id, { name: e.target.value })}
@@ -109,7 +109,7 @@ const TempoBlockItem = ({
               type="number" 
               value={block.bpm} 
               onChange={(e) => onUpdate(block.id, { bpm: parseInt(e.target.value) || 0 })}
-              className="bg-white/5 border-none h-10 font-mono text-base font-black rounded-xl focus-visible:ring-primary/30 transition-all text-center"
+              className="bg-white/5 border-none h-10 font-mono text-sm font-black rounded-xl focus-visible:ring-primary/30 transition-all text-center px-1"
             />
           </div>
           
@@ -119,7 +119,7 @@ const TempoBlockItem = ({
               type="number" 
               value={block.bars} 
               onChange={(e) => onUpdate(block.id, { bars: parseInt(e.target.value) || 0 })}
-              className="bg-white/5 border-none h-10 font-mono text-base font-black rounded-xl focus-visible:ring-primary/30 transition-all text-center"
+              className="bg-white/5 border-none h-10 font-mono text-sm font-black rounded-xl focus-visible:ring-primary/30 transition-all text-center px-1"
             />
           </div>
 
