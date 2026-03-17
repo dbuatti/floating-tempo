@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { TempoBlock } from '@/hooks/use-metronome-engine';
-import VisualFeedback from './VisualFeedback';
+import MetronomeVisuals from './MetronomeVisuals';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, RotateCcw, Minimize2, ChevronLeft, ChevronRight, Music2, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -129,7 +129,7 @@ const StageView = ({
           </div>
         </div>
 
-        <VisualFeedback 
+        <MetronomeVisuals 
           currentBeat={currentBeat} 
           totalBeats={(currentBlock?.timeSignature || 4) * (currentBlock?.subdivision || 1)} 
           isPlaying={isPlaying}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useMetronomeEngine, Song, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
-import VisualFeedback from '@/components/metronome/VisualFeedback';
+import MetronomeVisuals from '@/components/metronome/MetronomeVisuals';
 import TapTempo from '@/components/metronome/TapTempo';
 import PresetsManager from '@/components/metronome/PresetsManager';
 import StageView from '@/components/metronome/StageView';
@@ -280,7 +280,7 @@ const Index = () => {
               </div>
             </div>
 
-            <VisualFeedback 
+            <MetronomeVisuals 
               currentBeat={currentBeat} 
               totalBeats={(currentBlock?.timeSignature || 4) * (currentBlock?.subdivision || 1)} 
               isPlaying={isPlaying}
