@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 export interface TempoBlock {
   id: string;
+  name?: string;
   bpm: number;
   bars: number;
   timeSignature: number;

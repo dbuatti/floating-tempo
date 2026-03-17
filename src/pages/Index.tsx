@@ -9,6 +9,7 @@ import PracticeTimer from '@/components/metronome/PracticeTimer';
 import SoundSelector from '@/components/metronome/SoundSelector';
 import AuthButton from '@/components/auth/AuthButton';
 import SavedInputs from '@/components/metronome/SavedInputs';
+import QuickAddSong from '@/components/metronome/QuickAddSong';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -32,14 +33,15 @@ import {
   Maximize2,
   Minimize2,
   Settings2,
-  LayoutGrid
+  LayoutGrid,
+  ListMusic
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const DEFAULT_SEQUENCE: TempoBlock[] = [
-  { id: '1', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 },
+  { id: '1', name: 'Warmup', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 },
 ];
 
 const getTempoName = (bpm: number) => {
@@ -76,6 +78,7 @@ const Index = () => {
   const [visualFlash, setVisualFlash] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [showAdvancedInput, setShowAdvancedInput] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('metronome-sequence', JSON.stringify(sequence));
@@ -117,14 +120,15 @@ const Index = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [togglePlay, reset]);
 
-  const addBlock = () => {
+  const addBlock = (blockData?: Partial<TempoBlock>) => {
     const lastBlock = sequence[sequence.length - 1];
     const newBlock: TempoBlock = {
       id: Math.random().toString(36).substr(2, 9),
-      bpm: lastBlock?.bpm || 120,
-      bars: 4,
-      timeSignature: 4,
-      subdivision: 1
+      name: blockData?.name || '',
+      bpm: blockData?.bpm || lastBlock?.bpm || 120,
+      bars: blockData?.bars || 4,
+      timeSignature: blockData?.timeSignature || 4,
+      subdivision: blockData?.subdivision || 1
     };
     setSequence([...sequence, newBlock]);
   };
@@ -246,7 +250,7 @@ const Index = () => {
           )}
         </AnimatePresence>
 
-        {/* Smart Input Section - Now at the Top */}
+        {/* Quick Add Section */}
         <AnimatePresence>
           {!isFocusMode && (
             <motion.div 
@@ -254,17 +258,46 @@ const Index = () => {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
-              <div className="flex items-center gap-4 px-6">
-                <div className="w-3 h-6 rounded-full shadow-2xl" style={{ backgroundColor: accentColor }} />
-                <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Smart Input</h2>
+              <div className="flex items-center justify-between px-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-3 h-6 rounded-full shadow-2xl" style={{ backgroundColor: accentColor }} />
+                  <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Quick Add</h2>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowAdvancedInput(!showAdvancedInput)}
+                  className={cn(
+                    "gap-2 text-[11px] font-black uppercase tracking-widest transition-all rounded-2xl",
+                    showAdvancedInput ? "text-primary bg-primary/10" : "text-white/20 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  <Sparkles size={16} />
+                  {showAdvancedInput ? "Hide Advanced" : "Show Advanced"}
+                </Button>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div className="lg:col-span-7">
-                  <NaturalLanguageParser onParse={handleParse} />
-                </div>
-                <div className="lg:col-span-5">
-                  <SavedInputs onLoad={handleParse} />
-                </div>
+
+              <div className="space-y-8">
+                <QuickAddSong 
+                  onAdd={addBlock} 
+                  onAdvancedClick={() => setShowAdvancedInput(!showAdvancedInput)} 
+                />
+
+                {showAdvancedInput && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+                  >
+                    <div className="lg:col-span-7">
+                      <NaturalLanguageParser onParse={handleParse} />
+                    </div>
+                    <div className="lg:col-span-5">
+                      <SavedInputs onLoad={handleParse} />
+                    </div>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           )}
@@ -343,15 +376,26 @@ const Index = () => {
                 {getTempoName(displayBpm)}
               </motion.div>
               
-              <div className="flex items-center gap-6 px-8 py-3 bg-white/[0.03] rounded-full border border-white/10 backdrop-blur-2xl shadow-xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Block</span>
-                  <span className="text-[11px] font-mono font-black text-white">{currentBlockIndex + 1}</span>
-                </div>
-                <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Bar</span>
-                  <span className="text-[11px] font-mono font-black text-white">{currentBar + 1} / {currentBlock?.bars}</span>
+              <div className="flex flex-col items-center gap-2">
+                {currentBlock?.name && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-xl font-black text-white/80 tracking-widest uppercase"
+                  >
+                    {currentBlock.name}
+                  </motion.div>
+                )}
+                <div className="flex items-center gap-6 px-8 py-3 bg-white/[0.03] rounded-full border border-white/10 backdrop-blur-2xl shadow-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Block</span>
+                    <span className="text-[11px] font-mono font-black text-white">{currentBlockIndex + 1}</span>
+                  </div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Bar</span>
+                    <span className="text-[11px] font-mono font-black text-white">{currentBar + 1} / {currentBlock?.bars}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -495,7 +539,7 @@ const Index = () => {
                 <div className="flex items-center justify-between px-6">
                   <div className="flex items-center gap-4">
                     <div className="w-3 h-6 rounded-full shadow-2xl" style={{ backgroundColor: accentColor }} />
-                    <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Timeline</h2>
+                    <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Setlist Timeline</h2>
                   </div>
                   <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={exportSequence} className="gap-2 text-[11px] font-black uppercase tracking-widest text-white/20 hover:text-white hover:bg-white/5 rounded-2xl transition-all">
@@ -507,7 +551,7 @@ const Index = () => {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={addBlock} 
+                      onClick={() => addBlock()} 
                       style={{ color: accentColor }}
                       className="gap-2 text-[11px] font-black uppercase tracking-widest hover:bg-white/5 rounded-2xl transition-all"
                     >

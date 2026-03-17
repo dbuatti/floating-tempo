@@ -3,7 +3,7 @@ import { TempoBlock } from '@/hooks/use-metronome-engine';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Trash2, ChevronUp, ChevronDown, Music, Copy, Volume2, VolumeX } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown, Music, Copy, Volume2, VolumeX, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
@@ -81,7 +81,17 @@ const TempoBlockItem = ({
           {block.isMuted ? <VolumeX size={20} /> : <Music size={20} />}
         </div>
         
-        <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10">
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-6 relative z-10">
+          <div className="space-y-1.5 md:col-span-1">
+            <label className="text-[9px] uppercase font-black text-white/20 tracking-[0.2em] ml-1">Song Name</label>
+            <Input 
+              value={block.name || ''} 
+              onChange={(e) => onUpdate(block.id, { name: e.target.value })}
+              placeholder="Untitled"
+              className="bg-white/5 border-none h-10 font-bold text-sm rounded-2xl focus-visible:ring-primary/30 transition-all"
+            />
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-[9px] uppercase font-black text-white/20 tracking-[0.2em] ml-1">BPM</label>
             <Input 
