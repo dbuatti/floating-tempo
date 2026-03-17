@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useMetronomeEngine, Song, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
-import MetronomeVisuals from '@/components/metronome/MetronomeVisuals.tsx';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Song, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
+import MetronomePlayer from '@/components/metronome/MetronomePlayer';
 import TapTempo from '@/components/metronome/TapTempo';
 import PresetsManager from '@/components/metronome/PresetsManager';
-import StageView from '@/components/metronome/StageView';
 import PracticeTimer from '@/components/metronome/PracticeTimer';
 import SoundSelector from '@/components/metronome/SoundSelector';
 import AuthButton from '@/components/auth/AuthButton';
@@ -13,16 +12,10 @@ import QuickAddSong from '@/components/metronome/QuickAddSong';
 import SongListItem from '@/components/metronome/SongListItem';
 import SongEditorModal from '@/components/metronome/SongEditorModal';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { 
   Music2, 
-  Volume2, 
-  RotateCcw, 
-  Play, 
-  Pause, 
   Maximize2,
   LayoutGrid,
   ListMusic,
@@ -30,7 +23,6 @@ import {
   Cloud
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 
 const DEFAULT_SONGS: Song[] = [
@@ -51,47 +43,26 @@ const getBpmColor = (bpm: number) => {
 };
 
 const Index = () => {
-  // Debug: Render tracking
-  const renderCount = useRef(0);
-  renderCount.current++;
-  console.log(`[Fluid] Render #${renderCount.current}`);
-
   const [songs, setSongs] = useState<Song[]>(() => {
     const saved = localStorage.getItem('metronome-songs');
     try {
       const parsed = saved ? JSON.parse(saved) : null;
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-        console.log("[Fluid] Initialized with saved songs");
         return (parsed as Song[]).map(song => ({
           ...song,
-          sequence: Array.isArray(song.sequence) 
-            ? (song.sequence as TempoBlock[]) 
-            : [{ id: Math.random().toString(36).substr(2, 9), name: 'Main', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 as const }]
+          sequence: Array.isArray(song.sequence) ? song.sequence : [{ id: Math.random().toString(36).substr(2, 9), name: 'Main', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 as const }]
         }));
       }
-      console.log("[Fluid] Initialized with default songs");
       return DEFAULT_SONGS;
     } catch (e) {
-      console.error("[Fluid] Failed to parse initial songs", e);
       return DEFAULT_SONGS;
     }
   });
   
-  const [activeSongId, setActiveSongId] = useState<string>(() => {
-    return localStorage.getItem('active-song-id') || (songs[0]?.id || '');
-  });
-
-  const [activeSetlistName, setActiveSetlistName] = useState<string>(() => {
-    return localStorage.getItem('active-setlist-name') || 'Untitled Setlist';
-  });
-
-  const [activeSetlistId, setActiveSetlistId] = useState<string | null>(() => {
-    return localStorage.getItem('active-setlist-id');
-  });
-
-  const [isCloudSetlist, setIsCloudSetlist] = useState<boolean>(() => {
-    return localStorage.getItem('is-cloud-setlist') === 'true';
-  });
+  const [activeSongId, setActiveSongId] = useState<string>(() => localStorage.getItem('active-song-id') || (songs[0]?.id || ''));
+  const [activeSetlistName, setActiveSetlistName] = useState<string>(() => localStorage.getItem('active-setlist-name') || 'Untitled Setlist');
+  const [activeSetlistId, setActiveSetlistId] = useState<string | null>(() => localStorage.getItem('active-setlist-id'));
+  const [isCloudSetlist, setIsCloudSetlist] = useState<boolean>(() => localStorage.getItem('is-cloud-setlist') === 'true');
   
   const [soundType, setSoundType] = useState<SoundType>('woodblock');
   const [volume, setVolume] = useState(0.5);
@@ -99,230 +70,85 @@ const Index = () => {
   const [isStageMode, setIsStageMode] = useState(false);
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    console.log("[Fluid] Setting up auth listener");
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      console.log("[Fluid] Initial user fetch:", user?.email);
-      setUser(user);
-    });
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[Fluid] Auth state change:", event, session?.user?.email);
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
-    
-    return () => {
-      console.log("[Fluid] Cleaning up auth listener");
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Auto-save effect with stability guard
+  // Auto-save effect
   useEffect(() => {
-    console.log("[Fluid] Auto-save effect triggered");
-    
-    if (songs.length > 0) {
-      localStorage.setItem('metronome-songs', JSON.stringify(songs));
-    }
+    if (songs.length > 0) localStorage.setItem('metronome-songs', JSON.stringify(songs));
     localStorage.setItem('active-song-id', activeSongId);
     localStorage.setItem('active-setlist-name', activeSetlistName);
     localStorage.setItem('active-setlist-id', activeSetlistId || '');
     localStorage.setItem('is-cloud-setlist', String(isCloudSetlist));
 
     const syncSetlist = async () => {
-      if (!activeSetlistId) {
-        console.log("[Fluid] No active setlist ID, skipping cloud sync");
-        return;
-      }
-      
-      console.log("[Fluid] Starting sync for setlist:", activeSetlistId);
+      if (!activeSetlistId) return;
       setIsSyncing(true);
       try {
         if (isCloudSetlist && user) {
-          console.log("[Fluid] Syncing to Supabase...");
-          const { error } = await supabase
-            .from('setlists')
-            .update({ songs: songs })
-            .eq('id', activeSetlistId);
-          if (error) throw error;
-          console.log("[Fluid] Supabase sync successful");
+          await supabase.from('setlists').update({ songs }).eq('id', activeSetlistId);
         } else {
-          console.log("[Fluid] Syncing to LocalStorage presets...");
           const savedLocal = localStorage.getItem('metronome-presets');
           const localSets = savedLocal ? JSON.parse(savedLocal) : [];
-          const updated = localSets.map((s: any) => 
-            s.id === activeSetlistId ? { ...s, songs: songs } : s
-          );
+          const updated = localSets.map((s: any) => s.id === activeSetlistId ? { ...s, songs } : s);
           localStorage.setItem('metronome-presets', JSON.stringify(updated));
-          console.log("[Fluid] LocalStorage sync successful");
         }
-      } catch (error) {
-        console.error("[Fluid] Sync failed:", error);
       } finally {
-        setTimeout(() => {
-          console.log("[Fluid] Sync indicator cleared");
-          setIsSyncing(false);
-        }, 1000);
+        setTimeout(() => setIsSyncing(false), 1000);
       }
     };
 
-    const timeoutId = setTimeout(syncSetlist, 2000);
-    return () => {
-      console.log("[Fluid] Cleaning up auto-save timeout");
-      clearTimeout(timeoutId);
-    };
+    const timeoutId = setTimeout(syncSetlist, 3000);
+    return () => clearTimeout(timeoutId);
   }, [songs, activeSongId, activeSetlistName, activeSetlistId, isCloudSetlist, user]);
 
-  const activeSong = useMemo(() => {
-    const found = songs.find(s => s.id === activeSongId) || songs[0] || DEFAULT_SONGS[0];
-    console.log("[Fluid] Recalculated activeSong:", found?.name);
-    return found;
-  }, [songs, activeSongId]);
-
-  const editingSong = useMemo(() => 
-    songs.find(s => s.id === editingSongId) || null,
-  [songs, editingSongId]);
-
-  const { 
-    isPlaying, 
-    isCountingIn,
-    currentBlockIndex, 
-    currentBeat, 
-    currentBar, 
-    subdivisionProgress,
-    bpmOffset,
-    togglePlay, 
-    reset,
-    jumpToBlock
-  } = useMetronomeEngine(
-    activeSong?.sequence || [], 
-    soundType, 
-    volume, 
-    useCountIn, 
-    0, 
-    activeSong?.shouldLoop || false,
-    !!editingSongId
-  );
-
-  const currentBlock = activeSong?.sequence?.[currentBlockIndex];
-  const displayBpm = (currentBlock?.bpm || 120) + bpmOffset;
+  const activeSong = useMemo(() => songs.find(s => s.id === activeSongId) || songs[0] || DEFAULT_SONGS[0], [songs, activeSongId]);
+  const editingSong = useMemo(() => songs.find(s => s.id === editingSongId) || null, [songs, editingSongId]);
+  const displayBpm = (activeSong?.sequence?.[0]?.bpm || 120);
   const accentColor = useMemo(() => getBpmColor(displayBpm), [displayBpm]);
 
-  const handleSpace = useCallback(() => {
-    console.log("[Fluid] Spacebar pressed");
-    if (isPlaying) {
-      togglePlay();
-    } else {
-      const totalBlocks = activeSong?.sequence?.length || 0;
-      if (totalBlocks > 1) {
-        const isAtStartOfFirstBlock = currentBlockIndex === 0 && currentBar === 0 && currentBeat === 0;
-        if (!isAtStartOfFirstBlock) {
-          const nextIdx = (currentBlockIndex + 1) % totalBlocks;
-          console.log("[Fluid] Advancing to next block before play:", nextIdx);
-          jumpToBlock(nextIdx);
-        }
-      }
-      togglePlay();
-    }
-  }, [isPlaying, togglePlay, currentBlockIndex, currentBar, currentBeat, activeSong, jumpToBlock]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-      
-      if (e.code === 'Space') {
-        e.preventDefault();
-        handleSpace();
-      } else if (e.key.toLowerCase() === 'r') {
-        console.log("[Fluid] 'R' pressed - Resetting");
-        reset();
-      } else if (e.key.toLowerCase() === 's') {
-        console.log("[Fluid] 'S' pressed - Toggling Stage Mode");
-        setIsStageMode(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSpace, reset]);
-
   const addSong = (newSong: Song) => {
-    console.log("[Fluid] Adding new song:", newSong.name);
     setSongs([...songs, newSong]);
     setActiveSongId(newSong.id);
-    reset();
   };
 
   const updateSong = (updatedSong: Song) => {
-    console.log("[Fluid] Updating song:", updatedSong.name);
     setSongs(songs.map(s => s.id === updatedSong.id ? updatedSong : s));
   };
 
   const deleteSong = (id: string) => {
-    console.log("[Fluid] Deleting song ID:", id);
     if (songs.length <= 1) return;
     const newSongs = songs.filter(s => s.id !== id);
     setSongs(newSongs);
-    if (activeSongId === id) {
-      setActiveSongId(newSongs[0].id);
-      reset();
-    }
+    if (activeSongId === id) setActiveSongId(newSongs[0].id);
   };
 
   const handleLoadSetlist = (newSongs: Song[], name: string, id: string, isCloud: boolean) => {
-    console.log("[Fluid] Loading setlist:", name, "ID:", id, "Cloud:", isCloud);
-    const validatedSongs: Song[] = newSongs.map(song => ({
-      ...song,
-      sequence: Array.isArray(song.sequence) 
-        ? (song.sequence as TempoBlock[]) 
-        : [{ id: Math.random().toString(36).substr(2, 9), name: 'Main', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 as const }]
-    }));
-    
-    setSongs(validatedSongs);
-    setActiveSongId(validatedSongs[0]?.id || '');
+    setSongs(newSongs);
+    setActiveSongId(newSongs[0]?.id || '');
     setActiveSetlistName(name);
     setActiveSetlistId(id);
     setIsCloudSetlist(isCloud);
-    reset();
   };
 
   return (
     <div className="min-h-screen bg-[#08080a] text-foreground selection:bg-primary/30 transition-all duration-700 overflow-x-hidden analog-noise">
-      <AnimatePresence>
-        {isStageMode && (
-          <StageView 
-            isPlaying={isPlaying}
-            isCountingIn={isCountingIn}
-            currentBlock={currentBlock}
-            currentBlockIndex={currentBlockIndex}
-            totalBlocks={activeSong?.sequence?.length || 0}
-            currentBeat={currentBeat}
-            currentBar={currentBar}
-            accentColor={accentColor}
-            displayBpm={displayBpm}
-            subdivisionProgress={subdivisionProgress}
-            activeSetlistName={activeSong?.name || activeSetlistName}
-            onTogglePlay={togglePlay}
-            onReset={reset}
-            onClose={() => setIsStageMode(false)}
-            onPrevBlock={() => currentBlockIndex > 0 && jumpToBlock(currentBlockIndex - 1)} 
-            onNextBlock={() => currentBlockIndex < (activeSong?.sequence?.length || 0) - 1 && jumpToBlock(currentBlockIndex + 1)} 
-          />
-        )}
-      </AnimatePresence>
-
       <SongEditorModal 
         song={editingSong}
         isOpen={!!editingSongId}
         onClose={() => setEditingSongId(null)}
         onUpdate={updateSong}
-        currentBlockIndex={activeSongId === editingSongId ? currentBlockIndex : -1}
+        currentBlockIndex={-1}
       />
 
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-16 relative z-10">
-        {/* Header */}
         <header className="flex flex-col md:flex-row items-center justify-between gap-10 relative z-50">
           <div className="flex items-center gap-6">
             <div className="w-16 h-16 rounded-[2rem] bg-primary flex items-center justify-center shadow-[0_20px_50px_rgba(168,85,247,0.3)]">
@@ -344,92 +170,36 @@ const Index = () => {
           <div className="flex flex-wrap items-center justify-center gap-5 p-2 bg-white/[0.02] rounded-[2rem] border border-white/5 backdrop-blur-xl relative z-50">
             <PresetsManager currentSongs={songs} onLoad={handleLoadSetlist} />
             <div className="w-[1px] h-8 bg-white/5 mx-2" />
-            <PracticeTimer onTimeUp={() => isPlaying && togglePlay()} isActive={isPlaying} />
+            <PracticeTimer onTimeUp={() => {}} isActive={false} />
             <div className="w-[1px] h-8 bg-white/5 mx-2" />
             <AuthButton />
           </div>
         </header>
 
-        {/* Active Song Focus */}
         <section className="space-y-10 relative z-10">
           <div className="flex items-center justify-between px-6">
             <div className="flex items-center gap-4">
               <div className="w-3 h-6 rounded-full bg-primary shadow-2xl" />
               <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Performance Focus</h2>
             </div>
-            <Button 
-              onClick={() => setIsStageMode(true)}
-              className="rounded-2xl bg-primary hover:bg-primary/90 h-12 px-8 gap-3 text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20"
-            >
+            <Button onClick={() => setIsStageMode(true)} className="rounded-2xl bg-primary hover:bg-primary/90 h-12 px-8 gap-3 text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20">
               <Maximize2 size={18} />
               Enter Stage Mode
             </Button>
           </div>
 
-          <Card className="bg-white/[0.02] border-white/5 p-16 relative overflow-hidden backdrop-blur-[100px] rounded-[4rem]">
-            <div className="flex flex-col items-center text-center space-y-10 mb-16">
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/60">{activeSetlistName}</span>
-                <h2 className="text-3xl font-black text-white tracking-tight uppercase">{activeSong?.name}</h2>
-              </div>
-
-              <div className="relative flex items-center justify-center">
-                <motion.div
-                  key={displayBpm}
-                  animate={{ scale: isPlaying && currentBeat === 0 ? 1.08 : 1 }}
-                  className="text-[12rem] font-black tracking-tighter font-mono leading-none text-white"
-                  style={{ color: isPlaying && currentBeat === 0 ? accentColor : 'white' }}
-                >
-                  {displayBpm}
-                </motion.div>
-                <div className="absolute -right-20 bottom-8 text-3xl font-black uppercase tracking-widest opacity-10">BPM</div>
-              </div>
-              
-              <div className="flex flex-col items-center gap-4">
-                <h3 className="text-2xl font-black text-white/80 tracking-widest uppercase">
-                  {currentBlock?.name || "Untitled Block"}
-                </h3>
-                <div className="flex items-center gap-6 px-8 py-3 bg-white/[0.03] rounded-full border border-white/10">
-                  <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Part {currentBlockIndex + 1}</span>
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-                  <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Bar {currentBar + 1} / {currentBlock?.bars || 0}</span>
-                </div>
-              </div>
-            </div>
-
-            <MetronomeVisuals 
-              currentBeat={currentBeat} 
-              totalBeats={(currentBlock?.timeSignature || 4) * (currentBlock?.subdivision || 1)} 
-              isPlaying={isPlaying}
-              accentColor={accentColor}
-              subdivisionProgress={subdivisionProgress}
-            />
-
-            <div className="flex flex-col items-center gap-12 mt-16">
-              <div className="flex justify-center items-center gap-12">
-                <Button size="lg" variant="outline" onClick={reset} className="rounded-[2rem] w-20 h-20 p-0 border-white/10 bg-white/5">
-                  <RotateCcw size={28} className="text-white/60" />
-                </Button>
-                
-                <Button 
-                  size="lg" 
-                  onClick={togglePlay}
-                  style={{ backgroundColor: accentColor }}
-                  className="rounded-[4rem] w-32 h-32 p-0 shadow-2xl border-none"
-                >
-                  {isPlaying ? <Pause size={56} fill="currentColor" /> : <Play size={56} fill="currentColor" className="ml-3" />}
-                </Button>
-
-                <div className="flex flex-col items-center gap-4 w-20">
-                  <Volume2 size={24} className="text-white/30" />
-                  <Slider value={[volume * 100]} onValueChange={(v) => setVolume(v[0] / 100)} max={100} className="w-28 -rotate-90 mt-12" />
-                </div>
-              </div>
-            </div>
-          </Card>
+          <MetronomePlayer 
+            activeSong={activeSong}
+            soundType={soundType}
+            volume={volume}
+            setVolume={setVolume}
+            useCountIn={useCountIn}
+            editingSongId={editingSongId}
+            accentColor={accentColor}
+            displayBpm={displayBpm}
+          />
         </section>
 
-        {/* Song List & Tools */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 relative z-10">
           <div className="lg:col-span-8 space-y-10">
             <div className="flex items-center justify-between px-6">
@@ -446,17 +216,10 @@ const Index = () => {
                   key={song.id}
                   song={song}
                   isActive={activeSongId === song.id}
-                  isPlaying={isPlaying}
-                  onSelect={() => {
-                    if (activeSongId !== song.id) {
-                      console.log("[Fluid] Selecting song:", song.name);
-                      setActiveSongId(song.id);
-                      reset();
-                    }
-                  }}
-                  onTogglePlay={togglePlay}
+                  isPlaying={false}
+                  onSelect={() => setActiveSongId(song.id)}
+                  onTogglePlay={() => {}}
                   onEdit={() => {
-                    console.log("[Fluid] Editing song:", song.name);
                     setActiveSongId(song.id);
                     setEditingSongId(song.id);
                   }}
@@ -475,30 +238,15 @@ const Index = () => {
               <QuickAddSong onAdd={addSong} />
               
               <div className="p-6 bg-white/[0.02] rounded-[2.5rem] border border-white/5 space-y-6">
-                <div className="flex items-center gap-2 px-1">
-                  <Volume2 size={12} className="text-primary/40" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Audio Settings</span>
-                </div>
                 <SoundSelector value={soundType} onChange={setSoundType} />
-                
                 <div className="flex items-center justify-between px-2 py-1">
                   <div className="flex items-center gap-2">
                     <Repeat size={14} className={cn(activeSong?.shouldLoop ? "text-primary" : "text-white/20")} />
                     <Label htmlFor="loop-toggle" className="text-[10px] font-black uppercase tracking-widest text-white/40 cursor-pointer">Loop Song</Label>
                   </div>
-                  <Switch 
-                    id="loop-toggle" 
-                    checked={activeSong?.shouldLoop || false} 
-                    onCheckedChange={(checked) => {
-                      console.log("[Fluid] Toggling loop for active song:", checked);
-                      activeSong && updateSong({ ...activeSong, shouldLoop: checked });
-                    }}
-                    className="data-[state=checked]:bg-primary"
-                  />
+                  <Switch id="loop-toggle" checked={activeSong?.shouldLoop || false} onCheckedChange={(checked) => activeSong && updateSong({ ...activeSong, shouldLoop: checked })} className="data-[state=checked]:bg-primary" />
                 </div>
-
                 <TapTempo onTempoChange={(bpm) => {
-                  console.log("[Fluid] Tap tempo changed BPM to:", bpm);
                   if (activeSong) {
                     const updatedSequence = [...activeSong.sequence];
                     if (updatedSequence[0]) {
