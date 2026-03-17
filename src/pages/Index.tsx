@@ -7,6 +7,8 @@ import TapTempo from '@/components/metronome/TapTempo';
 import PresetsManager from '@/components/metronome/PresetsManager';
 import PracticeTimer from '@/components/metronome/PracticeTimer';
 import SoundSelector from '@/components/metronome/SoundSelector';
+import AuthButton from '@/components/auth/AuthButton';
+import SavedInputs from '@/components/metronome/SavedInputs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -23,14 +25,14 @@ import {
   Trash2, 
   Sparkles, 
   Timer,
-  ArrowRight,
   TrendingUp,
   Zap,
   Share2,
   Keyboard,
   Maximize2,
   Minimize2,
-  Settings2
+  Settings2,
+  LayoutGrid
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -165,7 +167,6 @@ const Index = () => {
 
   const handleParse = (newBlocks: TempoBlock[]) => {
     setSequence(newBlocks);
-    showSuccess(`Generated ${newBlocks.length} tempo blocks`);
   };
 
   const exportSequence = () => {
@@ -206,7 +207,7 @@ const Index = () => {
       </div>
 
       <div className={cn(
-        "max-w-6xl mx-auto px-6 py-12 space-y-16 relative z-10 transition-all duration-1000",
+        "max-w-6xl mx-auto px-6 py-12 space-y-12 relative z-10 transition-all duration-1000",
         isFocusMode ? "py-32" : "py-12"
       )}>
         
@@ -239,11 +240,33 @@ const Index = () => {
               <div className="flex flex-wrap items-center justify-center gap-5 p-2 bg-white/[0.02] rounded-[2rem] border border-white/5 backdrop-blur-xl">
                 <PracticeTimer onTimeUp={() => isPlaying && togglePlay()} isActive={isPlaying} />
                 <div className="w-[1px] h-8 bg-white/5 mx-2" />
-                <SoundSelector value={soundType} onChange={setSoundType} />
-                <PresetsManager currentSequence={sequence} onLoad={setSequence} />
-                <TapTempo onTempoChange={(bpm) => updateBlock(currentBlock.id, { bpm })} />
+                <AuthButton />
               </div>
             </motion.header>
+          )}
+        </AnimatePresence>
+
+        {/* Smart Input Section - Now at the Top */}
+        <AnimatePresence>
+          {!isFocusMode && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center gap-4 px-6">
+                <div className="w-3 h-6 rounded-full shadow-2xl" style={{ backgroundColor: accentColor }} />
+                <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Smart Input</h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-7">
+                  <NaturalLanguageParser onParse={handleParse} />
+                </div>
+                <div className="lg:col-span-5">
+                  <SavedInputs onLoad={handleParse} />
+                </div>
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -397,7 +420,7 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="flex flex-wrap items-center justify-center gap-12 p-6 bg-white/[0.02] rounded-[3rem] border border-white/5">
+            <div className="flex flex-wrap items-center justify-center gap-8 p-6 bg-white/[0.02] rounded-[3rem] border border-white/5">
               <div className="flex items-center space-x-4">
                 <Switch 
                   id="count-in" 
@@ -459,7 +482,7 @@ const Index = () => {
           </div>
         </Card>
 
-        {/* Timeline & Input Engine */}
+        {/* Timeline & Controls */}
         <AnimatePresence>
           {!isFocusMode && (
             <motion.div 
@@ -516,12 +539,16 @@ const Index = () => {
               <div className="lg:col-span-4 space-y-10">
                 <div className="flex items-center gap-4 px-6">
                   <div className="w-3 h-6 rounded-full shadow-2xl" style={{ backgroundColor: accentColor }} />
-                  <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Smart Input</h2>
+                  <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Settings</h2>
                 </div>
                 
-                <NaturalLanguageParser onParse={handleParse} />
-                
                 <div className="space-y-8">
+                  <div className="flex flex-wrap items-center gap-4 p-4 bg-white/[0.02] rounded-[2rem] border border-white/5">
+                    <SoundSelector value={soundType} onChange={setSoundType} />
+                    <PresetsManager currentSequence={sequence} onLoad={setSequence} />
+                    <TapTempo onTempoChange={(bpm) => updateBlock(currentBlock.id, { bpm })} />
+                  </div>
+
                   <Card className="p-10 bg-white/[0.01] border-white/5 rounded-[3rem] relative overflow-hidden group backdrop-blur-3xl">
                     <div className="absolute -right-10 -bottom-10 opacity-[0.02] group-hover:opacity-[0.05] transition-all duration-1000 rotate-45 group-hover:rotate-0" style={{ color: accentColor }}>
                       <Settings2 size={180} />

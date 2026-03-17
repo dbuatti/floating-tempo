@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+"use client";
+
+import React, { useState, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { TempoBlock } from '@/hooks/use-metronome-engine';
-import { Wand2 } from 'lucide-react';
+import { Wand2, Save, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { showSuccess, showError } from '@/utils/toast';
 
 interface NaturalLanguageParserProps {
   onParse: (blocks: TempoBlock[]) => void;
@@ -10,13 +14,23 @@ interface NaturalLanguageParserProps {
 
 const NaturalLanguageParser = ({ onParse }: NaturalLanguageParserProps) => {
   const [text, setText] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
-  const handleParse = () => {
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const parseText = (input: string): TempoBlock[] => {
     const regex = /(\d+)\s*bars?\s*(?:of|@)\s*(\d+)\s*bpm/gi;
     const blocks: TempoBlock[] = [];
     let match;
 
-    while ((match = regex.exec(text)) !== null) {
+    while ((match = regex.exec(input)) !== null) {
       blocks.push({
         id: Math.random().toString(36).substr(2, 9),
         bars: parseInt(match[1]),
@@ -25,11 +39,45 @@ const NaturalLanguageParser = ({ onParse }: NaturalLanguageParserProps) => {
         subdivision: 1
       });
     }
+    return blocks;
+  };
 
+  const handleParse = () => {
+    const blocks = parseText(text);
     if (blocks.length > 0) {
       onParse(blocks);
+      showSuccess("Sequence generated");
+    } else {
+      showError("Could not parse input. Try: '4 bars @ 120bpm'");
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user) {
+      showError("Please login to save inputs");
+      return;
+    }
+
+    const blocks = parseText(text);
+    if (blocks.length === 0) {
+      showError("Nothing to save. Enter a valid sequence first.");
+      return;
+    }
+
+    setIsSaving(true);
+    const { error } = await supabase.from('metronome_inputs').insert({
+      user_id: user.id,
+      input_text: text,
+      sequence: blocks
+    });
+
+    if (error) showError(error.message);
+    else {
+      showSuccess("Input saved to your library");
+      handleParse();
       setText('');
     }
+    setIsSaving(false);
   };
 
   return (
@@ -40,17 +88,31 @@ const NaturalLanguageParser = ({ onParse }: NaturalLanguageParserProps) => {
           placeholder="Try: '4 bars @ 120bpm then 8 bars @ 80bpm'"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="relative min-h-[120px] bg-white/[0.03] border-white/5 border-2 rounded-3xl resize-none focus-visible:ring-primary/30 focus-visible:border-primary/20 transition-all placeholder:text-white/20 text-sm font-medium p-5"
+          className="relative min-h-[100px] bg-white/[0.03] border-white/5 border-2 rounded-3xl resize-none focus-visible:ring-primary/30 focus-visible:border-primary/20 transition-all placeholder:text-white/20 text-sm font-medium p-5 pr-32"
         />
-        <Button 
-          size="sm" 
-          className="absolute bottom-4 right-4 gap-2 rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
-          onClick={handleParse}
-          disabled={!text.trim()}
-        >
-          <Wand2 size={14} />
-          Parse
-        </Button>
+        <div className="absolute bottom-4 right-4 flex gap-2">
+          {user && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="gap-2 rounded-xl border-white/10 bg-white/5 hover:bg-white/10"
+              onClick={handleSave}
+              disabled={!text.trim() || isSaving}
+            >
+              {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Save
+            </Button>
+          )}
+          <Button 
+            size="sm" 
+            className="gap-2 rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+            onClick={handleParse}
+            disabled={!text.trim()}
+          >
+            <Wand2 size={14} />
+            Parse
+          </Button>
+        </div>
       </div>
       <div className="flex items-center gap-2 px-2">
         <div className="w-1 h-1 rounded-full bg-white/20" />
