@@ -128,7 +128,6 @@ const Index = () => {
   };
 
   const handleLoadSetlist = (newSequence: TempoBlock[]) => {
-    // For backward compatibility with the old preset manager
     const newSong: Song = {
       id: Math.random().toString(36).substr(2, 9),
       name: 'Imported Setlist',
@@ -288,12 +287,14 @@ const Index = () => {
                   key={song.id}
                   song={song}
                   isActive={activeSongId === song.id}
+                  isPlaying={isPlaying}
                   onSelect={() => {
                     if (activeSongId !== song.id) {
                       setActiveSongId(song.id);
                       reset();
                     }
                   }}
+                  onTogglePlay={togglePlay}
                   onEdit={() => setEditingSong(song)}
                   onDelete={() => deleteSong(song.id)}
                 />

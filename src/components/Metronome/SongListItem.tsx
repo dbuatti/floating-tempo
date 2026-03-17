@@ -4,19 +4,21 @@ import React from 'react';
 import { Song } from '@/hooks/use-metronome-engine';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Play, Settings2, Trash2, Music, Layers } from 'lucide-react';
+import { Play, Pause, Settings2, Trash2, Music, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 interface SongListItemProps {
   song: Song;
   isActive: boolean;
+  isPlaying: boolean;
   onSelect: () => void;
+  onTogglePlay: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-const SongListItem = ({ song, isActive, onSelect, onEdit, onDelete }: SongListItemProps) => {
+const SongListItem = ({ song, isActive, isPlaying, onSelect, onTogglePlay, onEdit, onDelete }: SongListItemProps) => {
   const totalBars = song.sequence.reduce((acc, b) => acc + b.bars, 0);
   const mainBpm = song.sequence[0]?.bpm || 120;
 
@@ -36,12 +38,21 @@ const SongListItem = ({ song, isActive, onSelect, onEdit, onDelete }: SongListIt
             : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10"
         )}
       >
-        <div className={cn(
-          "flex items-center justify-center w-14 h-14 rounded-2xl shrink-0 transition-all duration-500 relative z-10",
-          isActive ? "bg-primary text-primary-foreground shadow-lg shadow-primary/40 scale-110" : "bg-white/5 text-white/20 group-hover:bg-white/10"
-        )}>
-          {isActive ? <Play size={24} fill="currentColor" /> : <Music size={24} />}
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isActive) onSelect();
+            onTogglePlay();
+          }}
+          className={cn(
+            "flex items-center justify-center w-14 h-14 rounded-2xl shrink-0 transition-all duration-500 relative z-10 border-none",
+            isActive ? "bg-primary text-primary-foreground shadow-lg shadow-primary/40 scale-110 hover:bg-primary/90" : "bg-white/5 text-white/20 group-hover:bg-white/10 hover:text-primary"
+          )}
+        >
+          {isActive && isPlaying ? <Pause size={24} fill="currentColor" /> : (isActive ? <Play size={24} fill="currentColor" /> : <Music size={24} />)}
+        </Button>
 
         <div className="flex-1 min-w-0 relative z-10">
           <h3 className="text-lg font-black text-white truncate tracking-tight">{song.name}</h3>
