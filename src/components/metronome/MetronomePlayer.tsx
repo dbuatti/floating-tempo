@@ -85,42 +85,58 @@ const MetronomePlayer = ({
       />
 
       <div className="flex flex-col items-center gap-12 mt-16">
-        <div className="flex justify-center items-center gap-12">
-          <div className="flex flex-col items-center gap-4 w-20">
-            <MoveHorizontal size={24} className="text-white/30" />
+        <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-12 w-full max-w-3xl">
+          
+          {/* Panning Control (Horizontal) */}
+          <div className="flex flex-col items-center gap-4 order-2 md:order-1">
+            <div className="flex items-center justify-between w-full px-2">
+              <span className="text-[10px] font-black text-white/20">L</span>
+              <MoveHorizontal size={14} className="text-white/10" />
+              <span className="text-[10px] font-black text-white/20">R</span>
+            </div>
             <Slider 
               value={[pan * 100]} 
               onValueChange={(v) => setPan(v[0] / 100)} 
               min={-100}
               max={100} 
-              className="w-28 -rotate-90 mt-12" 
+              className="w-full" 
             />
-            <span className="text-[8px] font-black uppercase tracking-widest text-white/20 mt-2">Pan</span>
+            <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Stereo Pan</span>
           </div>
 
-          <Button size="lg" variant="outline" onClick={onReset} className="rounded-[2rem] w-20 h-20 p-0 border-white/10 bg-white/5">
-            <RotateCcw size={28} className="text-white/60" />
-          </Button>
-          
-          <Button 
-            size="lg" 
-            onClick={onTogglePlay}
-            style={{ backgroundColor: accentColor }}
-            className="rounded-[4rem] w-32 h-32 p-0 shadow-2xl border-none"
-          >
-            {isPlaying ? <Pause size={56} fill="currentColor" /> : <Play size={56} fill="currentColor" className="ml-3" />}
-          </Button>
-
-          <div className="flex flex-col items-center gap-4 w-20">
-            <Volume2 size={24} className="text-white/30" />
-            <Slider 
-              value={[volume * 20]} // volume is 0-5, slider is 0-100
-              onValueChange={(v) => setVolume(v[0] / 20)} 
-              max={100} 
-              className="w-28 -rotate-90 mt-12" 
-            />
-            <span className="text-[8px] font-black uppercase tracking-widest text-white/20 mt-2">{Math.round(volume * 100)}%</span>
+          {/* Main Transport Controls */}
+          <div className="flex items-center justify-center gap-8 order-1 md:order-2">
+            <Button size="lg" variant="outline" onClick={onReset} className="rounded-[2rem] w-20 h-20 p-0 border-white/10 bg-white/5 hover:bg-white/10 transition-all">
+              <RotateCcw size={28} className="text-white/60" />
+            </Button>
+            
+            <Button 
+              size="lg" 
+              onClick={onTogglePlay}
+              style={{ backgroundColor: accentColor }}
+              className="rounded-[4rem] w-32 h-32 p-0 shadow-2xl border-none transition-all hover:scale-105 active:scale-95"
+            >
+              {isPlaying ? <Pause size={56} fill="currentColor" /> : <Play size={56} fill="currentColor" className="ml-3" />}
+            </Button>
           </div>
+
+          {/* Volume Control (Vertical Fader) */}
+          <div className="flex flex-col items-center gap-4 order-3">
+            <div className="h-32 flex items-center justify-center">
+              <Slider 
+                value={[volume * 20]} // volume is 0-5, slider is 0-100
+                onValueChange={(v) => setVolume(v[0] / 20)} 
+                max={100} 
+                orientation="vertical"
+                className="h-full" 
+              />
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <Volume2 size={16} className="text-white/30" />
+              <span className="text-[8px] font-black uppercase tracking-widest text-white/20">{Math.round(volume * 100)}% Gain</span>
+            </div>
+          </div>
+
         </div>
       </div>
     </Card>
