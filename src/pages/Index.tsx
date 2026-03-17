@@ -158,9 +158,11 @@ const Index = () => {
               <div className="flex items-center gap-3">
                 <h1 className="text-4xl font-black tracking-tighter text-white leading-none">Fluid</h1>
                 <div className="h-6 w-[2px] bg-white/10 mx-1" />
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-[100px]">
                   <span className="text-xl font-black text-primary tracking-tight truncate max-w-[200px]">{activeSetlistName}</span>
-                  {isSyncing && <Cloud size={14} className="text-primary animate-pulse" />}
+                  <div className="w-4 h-4 flex items-center justify-center">
+                    {isSyncing && <Cloud size={14} className="text-primary animate-pulse shrink-0" />}
+                  </div>
                 </div>
               </div>
               <p className="text-[10px] font-black uppercase tracking-[0.4em] mt-1 text-white/20">Studio Elite Metronome</p>

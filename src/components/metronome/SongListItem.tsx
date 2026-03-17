@@ -26,15 +26,15 @@ const SongListItem = ({ song, isActive, isPlaying, onSelect, onTogglePlay, onEdi
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, x: -20 }}
+      initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
     >
       <Card 
         onClick={onSelect}
         className={cn(
-          "p-5 flex items-center gap-5 transition-all duration-500 border-2 rounded-[2.5rem] backdrop-blur-xl relative overflow-hidden group cursor-pointer",
+          "p-5 flex items-center gap-5 transition-all duration-300 border-2 rounded-[2.5rem] backdrop-blur-xl relative overflow-hidden group cursor-pointer",
           isActive 
             ? "border-primary/60 bg-primary/[0.08] shadow-[0_20px_40px_-12px_rgba(168,85,247,0.3)]" 
             : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10"
