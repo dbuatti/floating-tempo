@@ -4,7 +4,7 @@ import React from 'react';
 import { TempoBlock } from '@/hooks/use-metronome-engine';
 import VisualFeedback from './VisualFeedback.tsx';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, RotateCcw, Minimize2, ChevronLeft, ChevronRight, Music2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, Minimize2, ChevronLeft, ChevronRight, Music2, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +19,7 @@ interface StageViewProps {
   accentColor: string;
   displayBpm: number;
   subdivisionProgress: number;
+  activeSetlistName: string;
   onTogglePlay: () => void;
   onReset: () => void;
   onClose: () => void;
@@ -37,6 +38,7 @@ const StageView = ({
   accentColor,
   displayBpm,
   subdivisionProgress,
+  activeSetlistName,
   onTogglePlay,
   onReset,
   onClose,
@@ -66,11 +68,11 @@ const StageView = ({
       <div className="absolute top-10 left-10 right-10 flex items-center justify-between z-10">
         <div className="flex items-center gap-6">
           <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
-            <Music2 className="text-primary" size={24} />
+            <LayoutGrid className="text-primary" size={24} />
           </div>
           <div>
-            <h2 className="text-xl font-black text-white tracking-tighter uppercase">Stage Mode</h2>
-            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Performance Focus</p>
+            <h2 className="text-xl font-black text-white tracking-tighter uppercase">{activeSetlistName}</h2>
+            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Stage Mode • Performance Focus</p>
           </div>
         </div>
         <Button 

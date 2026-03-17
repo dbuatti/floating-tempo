@@ -57,7 +57,10 @@ const Index = () => {
     return saved ? JSON.parse(saved) : DEFAULT_SEQUENCE;
   });
   
-  const [activeSetlistName, setActiveSetlistName] = useState<string>('Untitled Setlist');
+  const [activeSetlistName, setActiveSetlistName] = useState<string>(() => {
+    return localStorage.getItem('active-setlist-name') || 'Untitled Setlist';
+  });
+  
   const [soundType, setSoundType] = useState<SoundType>('woodblock');
   const [volume, setVolume] = useState(0.5);
   const [useCountIn, setUseCountIn] = useState(false);
@@ -69,7 +72,8 @@ const Index = () => {
 
   useEffect(() => {
     localStorage.setItem('metronome-sequence', JSON.stringify(sequence));
-  }, [sequence]);
+    localStorage.setItem('active-setlist-name', activeSetlistName);
+  }, [sequence, activeSetlistName]);
 
   const { 
     isPlaying, 
@@ -143,6 +147,7 @@ const Index = () => {
             accentColor={accentColor}
             displayBpm={displayBpm}
             subdivisionProgress={subdivisionProgress}
+            activeSetlistName={activeSetlistName}
             onTogglePlay={togglePlay}
             onReset={reset}
             onClose={() => setIsStageMode(false)}
@@ -160,8 +165,12 @@ const Index = () => {
               <Music2 className="text-white w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-4xl font-black tracking-tighter text-white leading-none">Fluid</h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] mt-1 text-primary">Studio Elite Metronome</p>
+              <div className="flex items-center gap-3">
+                <h1 className="text-4xl font-black tracking-tighter text-white leading-none">Fluid</h1>
+                <div className="h-6 w-[2px] bg-white/10 mx-1" />
+                <span className="text-xl font-black text-primary tracking-tight truncate max-w-[200px]">{activeSetlistName}</span>
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] mt-1 text-white/20">Studio Elite Metronome</p>
             </div>
           </div>
           
@@ -186,7 +195,7 @@ const Index = () => {
           <div className="flex items-center justify-between px-6">
             <div className="flex items-center gap-4">
               <div className="w-3 h-6 rounded-full bg-primary shadow-2xl" />
-              <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Active Setlist: {activeSetlistName}</h2>
+              <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Active Focus: {activeSetlistName}</h2>
             </div>
             <Button 
               onClick={() => setIsStageMode(true)}
