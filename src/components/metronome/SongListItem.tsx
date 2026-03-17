@@ -19,8 +19,10 @@ interface SongListItemProps {
 }
 
 const SongListItem = ({ song, isActive, isPlaying, onSelect, onTogglePlay, onEdit, onDelete }: SongListItemProps) => {
-  const totalBars = song.sequence.reduce((acc, b) => acc + b.bars, 0);
-  const mainBpm = song.sequence[0]?.bpm || 120;
+  // Safety check for sequence
+  const sequence = song?.sequence || [];
+  const totalBars = sequence.reduce((acc, b) => acc + (b?.bars || 0), 0);
+  const mainBpm = sequence[0]?.bpm || 120;
 
   return (
     <motion.div
@@ -56,8 +58,8 @@ const SongListItem = ({ song, isActive, isPlaying, onSelect, onTogglePlay, onEdi
 
         <div className="flex-1 min-w-0 relative z-10">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-black text-white truncate tracking-tight">{song.name}</h3>
-            {song.shouldLoop && (
+            <h3 className="text-lg font-black text-white truncate tracking-tight">{song?.name || "Untitled Song"}</h3>
+            {song?.shouldLoop && (
               <Repeat size={14} className="text-primary animate-pulse shrink-0" />
             )}
           </div>
@@ -71,12 +73,12 @@ const SongListItem = ({ song, isActive, isPlaying, onSelect, onTogglePlay, onEdi
               <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Bars</span>
               <span className="text-xs font-mono font-black text-white/60">{totalBars}</span>
             </div>
-            {song.sequence.length > 1 && (
+            {sequence.length > 1 && (
               <>
                 <div className="w-1 h-1 rounded-full bg-white/10" />
                 <div className="flex items-center gap-1.5 text-primary/60">
                   <Layers size={10} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">{song.sequence.length} Parts</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">{sequence.length} Parts</span>
                 </div>
               </>
             )}

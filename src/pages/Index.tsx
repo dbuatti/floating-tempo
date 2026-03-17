@@ -55,7 +55,16 @@ const Index = () => {
     const saved = localStorage.getItem('metronome-songs');
     try {
       const parsed = saved ? JSON.parse(saved) : null;
-      return (parsed && Array.isArray(parsed) && parsed.length > 0) ? parsed : DEFAULT_SONGS;
+      if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+        // Validate and repair songs
+        return (parsed as Song[]).map(song => ({
+          ...song,
+          sequence: Array.isArray(song.sequence) 
+            ? (song.sequence as TempoBlock[]) 
+            : [{ id: Math.random().toString(36).substr(2, 9), name: 'Main', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 as const }]
+        }));
+      }
+      return DEFAULT_SONGS;
     } catch (e) {
       return DEFAULT_SONGS;
     }
@@ -108,20 +117,25 @@ const Index = () => {
       if (!activeSetlistId) return;
       
       setIsSyncing(true);
-      if (isCloudSetlist && user) {
-        await supabase
-          .from('setlists')
-          .update({ songs: songs })
-          .eq('id', activeSetlistId);
-      } else {
-        const savedLocal = localStorage.getItem('metronome-presets');
-        const localSets = savedLocal ? JSON.parse(savedLocal) : [];
-        const updated = localSets.map((s: any) => 
-          s.id === activeSetlistId ? { ...s, songs: songs } : s
-        );
-        localStorage.setItem('metronome-presets', JSON.stringify(updated));
+      try {
+        if (isCloudSetlist && user) {
+          await supabase
+            .from('setlists')
+            .update({ songs: songs })
+            .eq('id', activeSetlistId);
+        } else {
+          const savedLocal = localStorage.getItem('metronome-presets');
+          const localSets = savedLocal ? JSON.parse(savedLocal) : [];
+          const updated = localSets.map((s: any) => 
+            s.id === activeSetlistId ? { ...s, songs: songs } : s
+          );
+          localStorage.setItem('metronome-presets', JSON.stringify(updated));
+        }
+      } catch (error) {
+        console.error("Sync failed:", error);
+      } finally {
+        setTimeout(() => setIsSyncing(false), 1000);
       }
-      setTimeout(() => setIsSyncing(false), 1000);
     };
 
     const timeoutId = setTimeout(syncSetlist, 2000);
@@ -215,8 +229,16 @@ const Index = () => {
   };
 
   const handleLoadSetlist = (newSongs: Song[], name: string, id: string, isCloud: boolean) => {
-    setSongs(newSongs);
-    setActiveSongId(newSongs[0]?.id || '');
+    // Ensure loaded songs have valid sequences
+    const validatedSongs: Song[] = newSongs.map(song => ({
+      ...song,
+      sequence: Array.isArray(song.sequence) 
+        ? (song.sequence as TempoBlock[]) 
+        : [{ id: Math.random().toString(36).substr(2, 9), name: 'Main', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 as const }]
+    }));
+    
+    setSongs(validatedSongs);
+    setActiveSongId(validatedSongs[0]?.id || '');
     setActiveSetlistName(name);
     setActiveSetlistId(id);
     setIsCloudSetlist(isCloud);
