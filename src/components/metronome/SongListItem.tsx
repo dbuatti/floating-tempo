@@ -21,7 +21,10 @@ interface SongListItemProps {
 const SongListItem = ({ song, isActive, isPlaying, onSelect, onTogglePlay, onEdit, onDelete }: SongListItemProps) => {
   // Safety check for sequence
   const sequence = song?.sequence || [];
-  const totalBars = sequence.reduce((acc, b) => acc + (b?.bars || 0), 0);
+  const totalBars = sequence.reduce((acc, b) => {
+    const bars = Number(b?.bars);
+    return acc + (isNaN(bars) ? 0 : bars);
+  }, 0);
   const mainBpm = sequence[0]?.bpm || 120;
 
   return (
