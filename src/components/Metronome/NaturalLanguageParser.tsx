@@ -26,18 +26,28 @@ const NaturalLanguageParser = ({ onParse }: NaturalLanguageParserProps) => {
   }, []);
 
   const parseText = (input: string): TempoBlock[] => {
-    const regex = /(\d+)\s*bars?\s*(?:of|@)\s*(\d+)\s*bpm/gi;
+    // Improved regex: 
+    // Group 1: Number of bars
+    // Group 2: BPM (optional "bpm" suffix)
+    // Handles "16 bars @ 114", "16 bars of 114bpm", "16 bars @ 114 then..."
+    const regex = /(\d+)\s*bars?\s*(?:of|@)\s*(\d+)(?:\s*bpm)?/gi;
     const blocks: TempoBlock[] = [];
     let match;
 
     while ((match = regex.exec(input)) !== null) {
-      blocks.push({
-        id: Math.random().toString(36).substr(2, 9),
-        bars: parseInt(match[1]),
-        bpm: parseInt(match[2]),
-        timeSignature: 4,
-        subdivision: 1
-      });
+      const bars = parseInt(match[1]);
+      const bpm = parseInt(match[2]);
+      
+      if (!isNaN(bars) && !isNaN(bpm)) {
+        blocks.push({
+          id: Math.random().toString(36).substr(2, 9),
+          name: `Section ${blocks.length + 1}`,
+          bars: bars,
+          bpm: bpm,
+          timeSignature: 4,
+          subdivision: 1
+        });
+      }
     }
     return blocks;
   };
@@ -46,9 +56,9 @@ const NaturalLanguageParser = ({ onParse }: NaturalLanguageParserProps) => {
     const blocks = parseText(text);
     if (blocks.length > 0) {
       onParse(blocks);
-      showSuccess("Sequence generated");
+      showSuccess(`Generated ${blocks.length} sections`);
     } else {
-      showError("Could not parse input. Try: '4 bars @ 120bpm'");
+      showError("Could not parse input. Try: '16 bars @ 114 then 31 bars @ 146'");
     }
   };
 
@@ -85,7 +95,7 @@ const NaturalLanguageParser = ({ onParse }: NaturalLanguageParserProps) => {
       <div className="relative group">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-transparent rounded-3xl blur opacity-0 group-focus-within:opacity-100 transition duration-500" />
         <Textarea 
-          placeholder="Try: '4 bars @ 120bpm then 8 bars @ 80bpm'"
+          placeholder="Try: '16 bars @ 114 then 31 bars @ 146'"
           value={text}
           onChange={(e) => setText(e.target.value)}
           className="relative min-h-[100px] bg-white/[0.03] border-white/5 border-2 rounded-3xl resize-none focus-visible:ring-primary/30 focus-visible:border-primary/20 transition-all placeholder:text-white/20 text-sm font-medium p-5 pr-32"
@@ -117,7 +127,7 @@ const NaturalLanguageParser = ({ onParse }: NaturalLanguageParserProps) => {
       <div className="flex items-center gap-2 px-2">
         <div className="w-1 h-1 rounded-full bg-white/20" />
         <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">
-          Format: [Number] bars @ [Number] bpm
+          Format: [Number] bars @ [Number] (optional: bpm)
         </p>
       </div>
     </div>

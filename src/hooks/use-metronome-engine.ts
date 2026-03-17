@@ -10,6 +10,12 @@ export interface TempoBlock {
   isMuted?: boolean;
 }
 
+export interface Song {
+  id: string;
+  name: string;
+  sequence: TempoBlock[];
+}
+
 export type SoundType = 'woodblock' | 'digital' | 'cowbell';
 
 export const useMetronomeEngine = (
@@ -220,6 +226,15 @@ export const useMetronomeEngine = (
     stateRef.current.bpmOffset = 0;
   }, []);
 
+  const jumpToBlock = useCallback((index: number) => {
+    setCurrentBlockIndex(index);
+    setCurrentBeat(0);
+    setCurrentBar(0);
+    stateRef.current.currentBlockIndex = index;
+    stateRef.current.currentBeat = 0;
+    stateRef.current.currentBar = 0;
+  }, []);
+
   return {
     isPlaying,
     isCountingIn,
@@ -230,6 +245,7 @@ export const useMetronomeEngine = (
     subdivisionProgress,
     bpmOffset,
     togglePlay,
-    reset
+    reset,
+    jumpToBlock
   };
 };

@@ -1,47 +1,37 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useMetronomeEngine, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
-import TempoBlockItem from '@/components/metronome/TempoBlockItem.tsx';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useMetronomeEngine, Song, TempoBlock, SoundType } from '@/hooks/use-metronome-engine';
 import VisualFeedback from '@/components/metronome/VisualFeedback.tsx';
-import NaturalLanguageParser from '@/components/metronome/NaturalLanguageParser.tsx';
 import TapTempo from '@/components/metronome/TapTempo.tsx';
 import PresetsManager from '@/components/metronome/PresetsManager.tsx';
 import StageView from '@/components/metronome/StageView.tsx';
 import PracticeTimer from '@/components/metronome/PracticeTimer.tsx';
 import SoundSelector from '@/components/metronome/SoundSelector.tsx';
 import AuthButton from '@/components/auth/AuthButton.tsx';
-import SavedInputs from '@/components/metronome/SavedInputs.tsx';
 import QuickAddSong from '@/components/metronome/QuickAddSong.tsx';
+import SongListItem from '@/components/metronome/SongListItem.tsx';
+import SongEditorModal from '@/components/metronome/SongEditorModal.tsx';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Plus, 
   Music2, 
   Volume2, 
-  Trash2, 
-  Sparkles, 
-  Timer,
-  TrendingUp,
-  Zap,
-  Share2,
-  Keyboard,
+  RotateCcw, 
+  Play, 
+  Pause, 
   Maximize2,
-  Settings2,
   LayoutGrid,
-  FolderOpen
+  ListMusic
 } from 'lucide-react';
-import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const DEFAULT_SEQUENCE: TempoBlock[] = [
-  { id: '1', name: 'Warmup', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 },
+const DEFAULT_SONGS: Song[] = [
+  { 
+    id: '1', 
+    name: 'Warmup', 
+    sequence: [{ id: 'b1', name: 'Main', bpm: 120, bars: 4, timeSignature: 4, subdivision: 1 }] 
+  },
 ];
 
 const getBpmColor = (bpm: number) => {
@@ -53,11 +43,15 @@ const getBpmColor = (bpm: number) => {
 };
 
 const Index = () => {
-  const [sequence, setSequence] = useState<TempoBlock[]>(() => {
-    const saved = localStorage.getItem('metronome-sequence');
-    return saved ? JSON.parse(saved) : DEFAULT_SEQUENCE;
+  const [songs, setSongs] = useState<Song[]>(() => {
+    const saved = localStorage.getItem('metronome-songs');
+    return saved ? JSON.parse(saved) : DEFAULT_SONGS;
   });
   
+  const [activeSongId, setActiveSongId] = useState<string>(() => {
+    return localStorage.getItem('active-song-id') || (songs[0]?.id || '');
+  });
+
   const [activeSetlistName, setActiveSetlistName] = useState<string>(() => {
     return localStorage.getItem('active-setlist-name') || 'Untitled Setlist';
   });
@@ -65,16 +59,18 @@ const Index = () => {
   const [soundType, setSoundType] = useState<SoundType>('woodblock');
   const [volume, setVolume] = useState(0.5);
   const [useCountIn, setUseCountIn] = useState(false);
-  const [autoIncrement, setAutoIncrement] = useState(0);
-  const [visualFlash, setVisualFlash] = useState(false);
-  const [showShortcuts, setShowShortcuts] = useState(false);
   const [isStageMode, setIsStageMode] = useState(false);
-  const [showAdvancedInput, setShowAdvancedInput] = useState(false);
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('metronome-sequence', JSON.stringify(sequence));
+    localStorage.setItem('metronome-songs', JSON.stringify(songs));
+    localStorage.setItem('active-song-id', activeSongId);
     localStorage.setItem('active-setlist-name', activeSetlistName);
-  }, [sequence, activeSetlistName]);
+  }, [songs, activeSongId, activeSetlistName]);
+
+  const activeSong = useMemo(() => 
+    songs.find(s => s.id === activeSongId) || songs[0], 
+  [songs, activeSongId]);
 
   const { 
     isPlaying, 
@@ -85,10 +81,11 @@ const Index = () => {
     subdivisionProgress,
     bpmOffset,
     togglePlay, 
-    reset 
-  } = useMetronomeEngine(sequence, soundType, volume, useCountIn, autoIncrement);
+    reset,
+    jumpToBlock
+  } = useMetronomeEngine(activeSong?.sequence || [], soundType, volume, useCountIn);
 
-  const currentBlock = sequence[currentBlockIndex];
+  const currentBlock = activeSong?.sequence[currentBlockIndex];
   const displayBpm = (currentBlock?.bpm || 120) + bpmOffset;
   const accentColor = useMemo(() => getBpmColor(displayBpm), [displayBpm]);
 
@@ -110,33 +107,36 @@ const Index = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [togglePlay, reset]);
 
-  const addBlock = (blockData?: Partial<TempoBlock>) => {
-    const lastBlock = sequence[sequence.length - 1];
-    const newBlock: TempoBlock = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: blockData?.name || '',
-      bpm: blockData?.bpm || lastBlock?.bpm || 120,
-      bars: blockData?.bars || 4,
-      timeSignature: blockData?.timeSignature || 4,
-      subdivision: blockData?.subdivision || 1
-    };
-    setSequence([...sequence, newBlock]);
+  const addSong = (newSong: Song) => {
+    setSongs([...songs, newSong]);
+    setActiveSongId(newSong.id);
+    reset();
   };
 
-  const updateBlock = (id: string, updates: Partial<TempoBlock>) => {
-    setSequence(sequence.map(b => b.id === id ? { ...b, ...updates } : b));
+  const updateSong = (updatedSong: Song) => {
+    setSongs(songs.map(s => s.id === updatedSong.id ? updatedSong : s));
+  };
+
+  const deleteSong = (id: string) => {
+    if (songs.length <= 1) return;
+    const newSongs = songs.filter(s => s.id !== id);
+    setSongs(newSongs);
+    if (activeSongId === id) {
+      setActiveSongId(newSongs[0].id);
+      reset();
+    }
   };
 
   const handleLoadSetlist = (newSequence: TempoBlock[]) => {
-    setSequence(newSequence);
-  };
-
-  const handleSelectSong = (index: number) => {
-    // We need to update the engine's current block index.
-    // Since the engine is a hook, we'd normally need a way to set its state.
-    // For now, we'll rely on the engine's internal logic or reset it.
-    // A better way would be to expose a setCurrentBlockIndex from the hook.
-    // Let's update the hook to support this.
+    // For backward compatibility with the old preset manager
+    const newSong: Song = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: 'Imported Setlist',
+      sequence: newSequence
+    };
+    setSongs([newSong]);
+    setActiveSongId(newSong.id);
+    reset();
   };
 
   return (
@@ -148,21 +148,28 @@ const Index = () => {
             isCountingIn={isCountingIn}
             currentBlock={currentBlock}
             currentBlockIndex={currentBlockIndex}
-            totalBlocks={sequence.length}
+            totalBlocks={activeSong?.sequence.length || 0}
             currentBeat={currentBeat}
             currentBar={currentBar}
             accentColor={accentColor}
             displayBpm={displayBpm}
             subdivisionProgress={subdivisionProgress}
-            activeSetlistName={activeSetlistName}
+            activeSetlistName={activeSong?.name || activeSetlistName}
             onTogglePlay={togglePlay}
             onReset={reset}
             onClose={() => setIsStageMode(false)}
-            onPrevBlock={() => {}} 
-            onNextBlock={() => {}} 
+            onPrevBlock={() => currentBlockIndex > 0 && jumpToBlock(currentBlockIndex - 1)} 
+            onNextBlock={() => currentBlockIndex < (activeSong?.sequence.length || 0) - 1 && jumpToBlock(currentBlockIndex + 1)} 
           />
         )}
       </AnimatePresence>
+
+      <SongEditorModal 
+        song={editingSong}
+        isOpen={!!editingSong}
+        onClose={() => setEditingSong(null)}
+        onUpdate={updateSong}
+      />
 
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-16 relative z-10">
         {/* Header */}
@@ -182,7 +189,7 @@ const Index = () => {
           </div>
           
           <div className="flex flex-wrap items-center justify-center gap-5 p-2 bg-white/[0.02] rounded-[2rem] border border-white/5 backdrop-blur-xl relative z-50">
-            <PresetsManager currentSequence={sequence} onLoad={handleLoadSetlist} />
+            <PresetsManager currentSequence={activeSong?.sequence || []} onLoad={handleLoadSetlist} />
             <div className="w-[1px] h-8 bg-white/5 mx-2" />
             <PracticeTimer onTimeUp={() => isPlaying && togglePlay()} isActive={isPlaying} />
             <div className="w-[1px] h-8 bg-white/5 mx-2" />
@@ -190,12 +197,12 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Active Setlist Focus */}
+        {/* Active Song Focus */}
         <section className="space-y-10 relative z-10">
           <div className="flex items-center justify-between px-6">
             <div className="flex items-center gap-4">
               <div className="w-3 h-6 rounded-full bg-primary shadow-2xl" />
-              <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Active Focus: {activeSetlistName}</h2>
+              <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Now Playing: {activeSong?.name}</h2>
             </div>
             <Button 
               onClick={() => setIsStageMode(true)}
@@ -225,7 +232,7 @@ const Index = () => {
                   {currentBlock?.name || "Untitled Block"}
                 </h3>
                 <div className="flex items-center gap-6 px-8 py-3 bg-white/[0.03] rounded-full border border-white/10">
-                  <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Song {currentBlockIndex + 1}</span>
+                  <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Part {currentBlockIndex + 1}</span>
                   <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
                   <span className="text-[11px] font-mono font-black uppercase tracking-[0.3em] opacity-40">Bar {currentBar + 1} / {currentBlock?.bars}</span>
                 </div>
@@ -264,71 +271,58 @@ const Index = () => {
           </Card>
         </section>
 
-        {/* Timeline & Quick Add */}
+        {/* Song List & Tools */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 relative z-10">
           <div className="lg:col-span-8 space-y-10">
             <div className="flex items-center justify-between px-6">
-              <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Timeline Editor</h2>
-              <Button variant="ghost" size="sm" onClick={() => addBlock()} className="gap-2 text-[11px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 rounded-2xl">
-                <Plus size={16} /> Add Block
-              </Button>
+              <div className="flex items-center gap-3">
+                <ListMusic className="text-primary" size={20} />
+                <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Song List</h2>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{songs.length} Songs Total</span>
             </div>
             
-            <div className="space-y-6 max-h-[800px] overflow-y-auto pr-6 custom-scrollbar">
-              {sequence.map((block, idx) => (
-                <TempoBlockItem 
-                  key={block.id}
-                  block={block}
-                  isActive={currentBlockIndex === idx}
-                  onUpdate={updateBlock}
-                  onDelete={(id) => setSequence(sequence.filter(b => b.id !== id))}
-                  onDuplicate={(id) => {
-                    const b = sequence.find(x => x.id === id);
-                    if (b) setSequence([...sequence, { ...b, id: Math.random().toString(36).substr(2, 9) }]);
-                  }}
+            <div className="space-y-4 max-h-[800px] overflow-y-auto pr-6 custom-scrollbar">
+              {songs.map((song) => (
+                <SongListItem 
+                  key={song.id}
+                  song={song}
+                  isActive={activeSongId === song.id}
                   onSelect={() => {
-                    // We'll need to update the engine to support jumping to a block
-                    // For now, we'll just reset and play if it's not the current one
-                    if (currentBlockIndex !== idx) {
+                    if (activeSongId !== song.id) {
+                      setActiveSongId(song.id);
                       reset();
-                      // This is a bit hacky, but we'll update the engine next
                     }
                   }}
-                  onMoveUp={() => {
-                    if (idx === 0) return;
-                    const newSeq = [...sequence];
-                    [newSeq[idx], newSeq[idx-1]] = [newSeq[idx-1], newSeq[idx]];
-                    setSequence(newSeq);
-                  }}
-                  onMoveDown={() => {
-                    if (idx === sequence.length - 1) return;
-                    const newSeq = [...sequence];
-                    [newSeq[idx], newSeq[idx+1]] = [newSeq[idx+1], newSeq[idx]];
-                    setSequence(newSeq);
-                  }}
-                  isFirst={idx === 0}
-                  isLast={idx === sequence.length - 1}
+                  onEdit={() => setEditingSong(song)}
+                  onDelete={() => deleteSong(song.id)}
                 />
               ))}
             </div>
           </div>
 
           <div className="lg:col-span-4 space-y-10">
-            <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50 px-6">Quick Tools</h2>
+            <div className="flex items-center gap-3 px-6">
+              <LayoutGrid className="text-primary" size={20} />
+              <h2 className="text-lg font-black uppercase tracking-[0.4em] text-white/50">Quick Tools</h2>
+            </div>
             <div className="space-y-6">
-              <div className="p-6 bg-white/[0.02] rounded-[2rem] border border-white/5 space-y-6">
+              <QuickAddSong onAdd={addSong} />
+              
+              <div className="p-6 bg-white/[0.02] rounded-[2.5rem] border border-white/5 space-y-6">
+                <div className="flex items-center gap-2 px-1">
+                  <Volume2 size={12} className="text-primary/40" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Audio Settings</span>
+                </div>
                 <SoundSelector value={soundType} onChange={setSoundType} />
-                <TapTempo onTempoChange={(bpm) => updateBlock(currentBlock.id, { bpm })} />
+                <TapTempo onTempoChange={(bpm) => {
+                  if (activeSong) {
+                    const updatedSequence = [...activeSong.sequence];
+                    updatedSequence[0] = { ...updatedSequence[0], bpm };
+                    updateSong({ ...activeSong, sequence: updatedSequence });
+                  }
+                }} />
               </div>
-              
-              <QuickAddSong onAdd={addBlock} onAdvancedClick={() => setShowAdvancedInput(!showAdvancedInput)} />
-              
-              {showAdvancedInput && (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                  <NaturalLanguageParser onParse={(blocks) => setSequence(blocks)} />
-                  <SavedInputs onLoad={(blocks) => setSequence(blocks)} />
-                </motion.div>
-              )}
             </div>
           </div>
         </section>
