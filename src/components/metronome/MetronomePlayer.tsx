@@ -168,7 +168,7 @@ const MetronomePlayer = ({
               <Slider 
                 value={[volume * 100]} 
                 onValueChange={(v) => setVolume(v[0] / 100)} 
-                max={100} 
+                max={200} 
                 step={1}
                 className="cursor-pointer"
               />

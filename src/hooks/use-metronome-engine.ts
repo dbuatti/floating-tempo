@@ -123,28 +123,29 @@ export const useMetronomeEngine = (
     const envelope = audioContext.current.createGain();
 
     let freq = 800;
-    let gainMult = 1.0;
+    // Increased base multipliers for "much much more" volume
+    let gainMult = 1.5; 
 
     if (soundType === 'woodblock') {
       switch (type) {
-        case 'accent': freq = 1200; break;
-        case 'secondary': freq = 1000; gainMult = 0.8; break;
-        case 'normal': freq = 800; gainMult = 0.7; break;
-        case 'subdivision': freq = 600; gainMult = 0.4; break;
+        case 'accent': freq = 1200; gainMult = 2.0; break;
+        case 'secondary': freq = 1000; gainMult = 1.6; break;
+        case 'normal': freq = 800; gainMult = 1.4; break;
+        case 'subdivision': freq = 600; gainMult = 0.8; break;
       }
     } else if (soundType === 'digital') {
       switch (type) {
-        case 'accent': freq = 1000; break;
-        case 'secondary': freq = 800; gainMult = 0.8; break;
-        case 'normal': freq = 500; gainMult = 0.7; break;
-        case 'subdivision': freq = 400; gainMult = 0.4; break;
+        case 'accent': freq = 1000; gainMult = 1.8; break;
+        case 'secondary': freq = 800; gainMult = 1.4; break;
+        case 'normal': freq = 500; gainMult = 1.2; break;
+        case 'subdivision': freq = 400; gainMult = 0.7; break;
       }
     } else { // cowbell
       switch (type) {
-        case 'accent': freq = 800; break;
-        case 'secondary': freq = 700; gainMult = 0.8; break;
-        case 'normal': freq = 400; gainMult = 0.7; break;
-        case 'subdivision': freq = 300; gainMult = 0.4; break;
+        case 'accent': freq = 800; gainMult = 2.0; break;
+        case 'secondary': freq = 700; gainMult = 1.6; break;
+        case 'normal': freq = 400; gainMult = 1.4; break;
+        case 'subdivision': freq = 300; gainMult = 0.8; break;
       }
     }
 
