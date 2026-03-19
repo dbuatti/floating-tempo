@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,12 +16,15 @@ import {
   TrendingUp,
   Zap,
   EyeOff,
-  Eye
+  Eye,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess, showError } from '@/utils/toast';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMetronomeEngine, TempoBlock } from '@/hooks/use-metronome-engine';
 
 const TempoChallenge = () => {
   const [targetBpm, setTargetBpm] = useState<number>(120);
@@ -35,6 +38,23 @@ const TempoChallenge = () => {
   const [user, setUser] = useState<any>(null);
   
   const lastTapRef = useRef<number>(0);
+
+  // Metronome preview engine
+  const previewSequence = useMemo<TempoBlock[]>(() => [{
+    id: 'preview',
+    bpm: targetBpm,
+    bars: 999,
+    timeSignature: 4,
+    subdivision: 1
+  }], [targetBpm]);
+
+  const { isPlaying: isMetronomePlaying, togglePlay: toggleMetronome } = useMetronomeEngine(
+    previewSequence,
+    'woodblock',
+    0.5,
+    0,
+    false
+  );
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -83,6 +103,7 @@ const TempoChallenge = () => {
   }, [taps, isTesting, targetBpm]);
 
   const startChallenge = () => {
+    if (isMetronomePlaying) toggleMetronome();
     setIsTesting(true);
     setTaps([]);
     setAccuracy(null);
@@ -149,13 +170,26 @@ const TempoChallenge = () => {
               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Target Tempo</span>
             </div>
             <div className="flex items-center gap-4">
-              <Input
-                type="number"
-                value={targetBpm}
-                onChange={(e) => setTargetBpm(parseInt(e.target.value) || 0)}
-                className="w-40 h-20 text-5xl font-black text-center bg-white/5 border-none rounded-[2rem] focus-visible:ring-primary/30"
-              />
-              <span className="text-2xl font-black text-white/10 uppercase">BPM</span>
+              <div className="relative flex items-center">
+                <Input
+                  type="number"
+                  value={targetBpm}
+                  onChange={(e) => setTargetBpm(parseInt(e.target.value) || 0)}
+                  className="w-40 h-20 text-5xl font-black text-center bg-white/5 border-none rounded-[2rem] focus-visible:ring-primary/30"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleMetronome}
+                  className={cn(
+                    "absolute -right-14 w-10 h-10 rounded-xl transition-all",
+                    isMetronomePlaying ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-white/5 text-white/20 hover:text-white"
+                  )}
+                >
+                  {isMetronomePlaying ? <Volume2 size={18} /> : <VolumeX size={18} />}
+                </Button>
+              </div>
+              <span className="text-2xl font-black text-white/10 uppercase ml-10">BPM</span>
             </div>
           </div>
 
