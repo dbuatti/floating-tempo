@@ -27,12 +27,14 @@ import {
   SortAsc,
   AlertCircle,
   History,
-  Settings2
+  Settings2,
+  Trophy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess } from '@/utils/toast';
+import { useNavigate } from 'react-router-dom';
 
 const DEFAULT_SONGS: Song[] = [
   { 
@@ -52,6 +54,7 @@ const getBpmColor = (bpm: number) => {
 };
 
 const Index = () => {
+  const navigate = useNavigate();
   const [songs, setSongs] = useState<Song[]>(() => {
     const saved = localStorage.getItem('metronome-songs');
     try {
@@ -151,11 +154,7 @@ const Index = () => {
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent spacebar from triggering play/pause if an input is focused
-      // or if a button is focused (to prevent double-triggering focused buttons)
       const isInputFocused = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
-      const isButtonFocused = document.activeElement?.tagName === 'BUTTON';
-      
       if (e.code === 'Space') {
         if (isInputFocused) return;
         e.preventDefault();
@@ -284,6 +283,15 @@ const Index = () => {
           </div>
           
           <div className="flex flex-wrap items-center justify-center gap-6 p-3 bg-white/[0.02] rounded-[2.5rem] border border-white/5 backdrop-blur-3xl relative z-50 shadow-2xl">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/challenge')}
+              className="gap-2 rounded-xl text-xs font-bold uppercase tracking-wider h-10 px-4 hover:bg-primary/10 hover:text-primary"
+            >
+              <Trophy size={14} className="text-primary" />
+              Challenge
+            </Button>
+            <div className="w-[1px] h-10 bg-white/5 mx-1" />
             <PresetsManager currentSongs={songs} onLoad={handleLoadSetlist} />
             <div className="w-[1px] h-10 bg-white/5 mx-1" />
             <PracticeTimer onTimeUp={() => isPlaying && togglePlay()} isActive={isPlaying} />
