@@ -151,12 +151,17 @@ const Index = () => {
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+      // Prevent spacebar from triggering play/pause if an input is focused
+      // or if a button is focused (to prevent double-triggering focused buttons)
+      const isInputFocused = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
+      const isButtonFocused = document.activeElement?.tagName === 'BUTTON';
       
       if (e.code === 'Space') {
+        if (isInputFocused) return;
         e.preventDefault();
         togglePlay();
       } else if (e.key.toLowerCase() === 'r') {
+        if (isInputFocused) return;
         reset();
       }
     };
@@ -240,6 +245,7 @@ const Index = () => {
         isOpen={!!editingSongId}
         onClose={() => setEditingSongId(null)}
         onUpdate={updateSong}
+        onJumpToBlock={jumpToBlock}
         currentBlockIndex={activeSongId === editingSongId ? currentBlockIndex : -1}
       />
 

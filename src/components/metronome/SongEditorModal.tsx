@@ -7,22 +7,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, Save, X, Music2, Edit3, Repeat } from 'lucide-react';
+import { Plus, Save, X, Music2, Edit3, Repeat, RotateCcw } from 'lucide-react';
 import TempoBlockItem from './TempoBlockItem';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { showSuccess } from '@/utils/toast';
 
 interface SongEditorModalProps {
   song: Song | null;
   isOpen: boolean;
   onClose: () => void;
   onUpdate: (updatedSong: Song) => void;
+  onJumpToBlock: (index: number) => void;
   currentBlockIndex: number;
 }
 
-const SongEditorModal = ({ song, isOpen, onClose, onUpdate, currentBlockIndex }: SongEditorModalProps) => {
+const SongEditorModal = ({ song, isOpen, onClose, onUpdate, onJumpToBlock, currentBlockIndex }: SongEditorModalProps) => {
   const [localName, setLocalName] = useState('');
 
-  // Sync local name when song changes or modal opens
   useEffect(() => {
     if (song) {
       setLocalName(song.name);
@@ -75,6 +76,19 @@ const SongEditorModal = ({ song, isOpen, onClose, onUpdate, currentBlockIndex }:
       subdivision: 1
     };
     onUpdate({ ...song, sequence: [...song.sequence, newBlock] });
+  };
+
+  const resetSequence = () => {
+    const defaultBlock: TempoBlock = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: 'Main',
+      bpm: 120,
+      bars: 4,
+      timeSignature: 4,
+      subdivision: 1
+    };
+    onUpdate({ ...song, sequence: [defaultBlock] });
+    showSuccess("Sequence reset to default");
   };
 
   const moveBlock = (index: number, direction: 'up' | 'down') => {
@@ -137,7 +151,7 @@ const SongEditorModal = ({ song, isOpen, onClose, onUpdate, currentBlockIndex }:
                   onUpdate={updateBlock}
                   onDelete={deleteBlock}
                   onDuplicate={duplicateBlock}
-                  onSelect={() => {}}
+                  onSelect={() => onJumpToBlock(idx)}
                   onMoveUp={() => moveBlock(idx, 'up')}
                   onMoveDown={() => moveBlock(idx, 'down')}
                   isFirst={idx === 0}
@@ -148,14 +162,24 @@ const SongEditorModal = ({ song, isOpen, onClose, onUpdate, currentBlockIndex }:
           </ScrollArea>
 
           <div className="flex items-center justify-between pt-4 border-t border-white/5">
-            <Button 
-              variant="outline" 
-              onClick={addBlock}
-              className="rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 h-12 px-6 gap-2 text-xs font-black uppercase tracking-widest"
-            >
-              <Plus size={18} />
-              Add Section
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                onClick={addBlock}
+                className="rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 h-12 px-6 gap-2 text-xs font-black uppercase tracking-widest"
+              >
+                <Plus size={18} />
+                Add Section
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={resetSequence}
+                className="rounded-2xl text-white/20 hover:text-destructive hover:bg-destructive/10 h-12 px-6 gap-2 text-xs font-black uppercase tracking-widest"
+              >
+                <RotateCcw size={18} />
+                Reset Sequence
+              </Button>
+            </div>
             <Button 
               onClick={onClose}
               className="rounded-2xl bg-primary hover:bg-primary/90 h-12 px-8 gap-2 text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20"
